@@ -9,7 +9,7 @@ import creating_image_functions
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--FITS-dir', dest='fits_dir', type=str)
+    parser.add_argument('--fits-dir', dest='fits_dir', type=str)
     parser.add_argument('--scale-factor', dest='scale_factor', default=1, type=float)
 
     args = parser.parse_args()
