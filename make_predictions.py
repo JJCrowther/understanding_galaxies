@@ -3,7 +3,7 @@ import logging
 import glob
 import pandas as pd
 from pathlib import Path
-
+import argparse
 
 import tensorflow as tf
 
@@ -14,6 +14,11 @@ from zoobot.predictions import predict_on_tfrecords, predict_on_images
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch-size', dest='batch_size', default=128, type=int)
+
+    args = parser.parse_args()
 
     tf.get_logger().setLevel('ERROR')
     logging.basicConfig(level=logging.INFO)
@@ -42,7 +47,7 @@ if __name__ == '__main__':
     Load the images as a tf.dataset, just as for training
     """
     initial_size = 424  # 300 for paper, from tfrecord or from png (png will be resized when loaded, before preprocessing)
-    batch_size = 2  # 128 for paper, you'll need a very good GPU. 8 for debugging, 64 for RTX 2070, 256 for A100
+    batch_size = args.batch_size  # 128 for paper, you'll need a very good GPU. 8 for debugging, 64 for RTX 2070, 256 for A100
     raw_image_ds = image_datasets.get_image_dataset([str(x) for x in unordered_image_paths], file_format, initial_size, batch_size)
 
     preprocessing_config = preprocess.PreprocessingConfig(
