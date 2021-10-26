@@ -1,0 +1,11 @@
+ZOOBOT_DIR=/share/nas/walml/repos/redshift-debias
+PYTHON=/share/nas/walml/miniconda3/envs/zoobot/bin/python
+
+FITS_DIR=/share/nas/walml/galaxy_zoo/decals/dr5/fits/J000
+
+$PYTHON $ZOOBOT_DIR/creating_images_main.py \
+    --FITS-dir $FITS_DIR \
+    --scale-factor 2 
+    
+$PYTHON $ZOOBOT_DIR/make_predictions.py \
+    --batch-size 128 
