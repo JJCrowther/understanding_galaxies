@@ -16,6 +16,9 @@ from zoobot.predictions import predict_on_tfrecords, predict_on_images
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--scaled-dir', dest='scaled_dir', type=str)
+    parser.add_argument('--checkpoint-loc', dest='checkpoint_loc', type=str)
+    parser.add_argument('--save-loc', dest='save_loc', type=str)
     parser.add_argument('--batch-size', dest='batch_size', default=128, type=int)
 
     args = parser.parse_args()
@@ -35,7 +38,7 @@ if __name__ == '__main__':
     file_format = 'png'
 
     # utility function to easily list the images in a folder.
-    unordered_image_paths = predict_on_images.paths_in_folder(Path(os.getcwd() + '/Scaled_images'), file_format=file_format, recursive=False)
+    unordered_image_paths = predict_on_images.paths_in_folder(Path(args.scaled_dir), file_format=file_format, recursive=False)
 
     ## or maybe you already have a list from a catalog?
     # unordered_image_paths = df['paths']
@@ -68,14 +71,12 @@ if __name__ == '__main__':
     resize_size = 224  # 224 for paper
     channels = 3
 
-    checkpoint_loc = 'data/pretrained_models/decals_dr_trained_on_all_labelled_m0/in_progress'
-
     """
     If you're just using the full pretrained Galaxy Zoo model, without finetuning, you can just use include_top=True.
     """
 
     model = define_model.load_model(
-        checkpoint_loc=checkpoint_loc,
+        checkpoint_loc=args.checkpoint_loc,
         include_top=True,
         input_size=initial_size,
         crop_size=crop_size,
@@ -118,9 +119,5 @@ if __name__ == '__main__':
 
     # label_cols = ['ring']
 
-    save_loc = Path('/results/make_predictions.csv')
     n_samples = 1
-    predict_on_images.predict(image_ds, model, n_samples, label_cols, save_loc)
-    
-
-
+    predict_on_images.predict(image_ds, model, n_samples, label_cols, args.save_loc)
