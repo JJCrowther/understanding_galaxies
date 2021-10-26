@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     # label_cols = ['ring']
 
-    save_loc = Path('/data/results/make_predictions_example.csv')
+    save_loc = Path('/results/make_predictions.csv')
     n_samples = 1
     predict_on_images.predict(image_ds, model, n_samples, label_cols, save_loc)
     
