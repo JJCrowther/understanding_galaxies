@@ -53,7 +53,7 @@ def photon_counts_from_FITS(imgs, scale_factor=1, bands='grz'):
 
     return clipped_img, img_counts, img_scaled
 
-def flux_to_counts(im, softening_parameters, band, exposure_time_seconds = 90. * 3.): #Check exposure
+def flux_to_counts(im, softening_parameters, band, exposure_time_seconds = 90.): #Check exposure
     """
     Converts data in the form of fluxes in nanomaggies into equivilent photon counts. First defines
     the photon energy assuming a central average wavelength for each band. The FITs data is then 
@@ -89,7 +89,7 @@ def flux_to_counts(im, softening_parameters, band, exposure_time_seconds = 90. *
     
     return img_photons
 
-def counts_to_flux(counts, band, exposure_time_seconds = 90. * 3.):
+def counts_to_flux(counts, band, exposure_time_seconds = 90.):
     """
     Converts data from the form of photon counts into nanomaggy fluxes. Starts by defining the 
     energy for photons in each the 3 bands, using a central band wavelength. Then takes the counts 
