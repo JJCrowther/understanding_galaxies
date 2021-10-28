@@ -16,7 +16,7 @@ from zoobot.predictions import predict_on_tfrecords, predict_on_images
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scaled-dir', dest='scaled_dir', type=str)
+    parser.add_argument('--input-dir', dest='input_dir', type=str)
     parser.add_argument('--checkpoint-loc', dest='checkpoint_loc', type=str)
     parser.add_argument('--save-loc', dest='save_loc', type=str)
     parser.add_argument('--batch-size', dest='batch_size', default=128, type=int)
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     file_format = 'png'
 
     # utility function to easily list the images in a folder.
-    unordered_image_paths = predict_on_images.paths_in_folder(Path(args.scaled_dir), file_format=file_format, recursive=False)
+    unordered_image_paths = predict_on_images.paths_in_folder(Path(args.input_dir), file_format=file_format, recursive=False)
 
     ## or maybe you already have a list from a catalog?
     # unordered_image_paths = df['paths']
