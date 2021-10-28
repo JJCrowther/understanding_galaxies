@@ -18,16 +18,16 @@ PYTHON=/share/nas/walml/miniconda3/envs/zoobot/bin/python
 
 FITS_DIR=/share/nas/walml/galaxy_zoo/decals/dr5/fits_native/J000
 
-SCALE_FACTOR=6
-SAVE_DIR=/share/nas/walml/repos/understanding_galaxies/scaled_$SCALE_FACTOR
+SCALE_FACTOR=1
+SCALED_IMG_DIR=/share/nas/walml/repos/understanding_galaxies/scaled_$SCALE_FACTOR
 
 $PYTHON $ZOOBOT_DIR/creating_image_main.py \
     --fits-dir $FITS_DIR \
     --scale-factor $SCALE_FACTOR \
-    --save-dir $SAVE_DIR
+    --save-dir $SCALED_IMG_DIR
     
 $PYTHON $ZOOBOT_DIR/make_predictions.py \
     --batch-size 128 \
-    --input-dir $SAVE_DIR \
+    --input-dir $SCALED_IMG_DIR \
     --checkpoint-loc /share/nas/walml/repos/zoobot_test/data/pretrained_models/decals_dr_train_set_only_replicated/checkpoint \
     --save-loc /share/nas/walml/repos/understanding_galaxies/results/scaled_image_predictions_$SCALE_FACTOR.csv
