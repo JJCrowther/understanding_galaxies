@@ -110,7 +110,7 @@ def average_maker(input_array):
     
     return averages
 
-def proportion_over_threshold_using_certain_total(input_array, threshold):
+def proportion_over_threshold_using_full_total(input_array, threshold):
     """
     input_array - array of floats size (x, 4) where x can vary
     threshold - single float value designating cut-off threshold
@@ -127,7 +127,7 @@ def proportion_over_threshold_using_certain_total(input_array, threshold):
 
     return proportions
 
-def proportion_over_threshold_using_full_total(input_array, threshold):
+def proportion_over_threshold_using_certain_total(input_array, threshold):
     """
     input_array - array of floats size (x, 4) where x can vary
     threshold - single float value designating cut-off threshold
@@ -145,7 +145,10 @@ def proportion_over_threshold_using_full_total(input_array, threshold):
     null_count = len(input_array) - positive_classification_count
 
     over_threshold_counts = np.array((smooth_count, featured_count, artifact_count, null_count))
-    proportions = over_threshold_counts/positive_classification_count
+    if positive_classification_count == 0:
+        proportions = over_threshold_counts #Removes divide by 0 error
+    else:
+        proportions = over_threshold_counts/positive_classification_count
 
     return proportions
 

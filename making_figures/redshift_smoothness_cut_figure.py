@@ -8,9 +8,10 @@ print('Begin \n')
 file_name_list = ['scaled_image_predictions_1.csv', 'scaled_image_predictions_2.csv', 'scaled_image_predictions_3.csv', 'scaled_image_predictions_4.csv', 'scaled_image_predictions_5.csv', 'scaled_image_predictions_6.csv']
 
 i=0
+rounding=0.02
 scale_factor_data={}
 proportion={}
-cut_threshold = 0.8
+cut_threshold = 0.7
 full_data_array=np.zeros((0, 5))
 
 parquet_file = pd.read_parquet('nsa_v1_0_1_mag_cols.parquet', columns= ['iauname', 'redshift'])
@@ -35,8 +36,10 @@ for file_name in file_name_list:
     full_data_array=np.vstack((full_data_array, numpy_merged_probs)) #stacks all data from current redshift to cumulative array
     
 
-full_data_array[:, 4]=np.round(full_data_array[:, 4].astype(float), 2) #rounds the redshift values to 2 dp for binning
-    
+#full_data_array[:, 4]=np.round(full_data_array[:, 4].astype(float), 2) #rounds the redshift values to 2 dp for binning
+for redshift in range(len(full_data_array)):
+    full_data_array[redshift, 4] = round(full_data_array[redshift, 4].astype(float)*(1/rounding))/(1/rounding)
+
 full_data_array = full_data_array[np.argsort(full_data_array[:, 4])] #sorts all data based on ascending redshift
     
 split_by_redshift = np.split(full_data_array, np.where(np.diff(full_data_array[:,4].astype(float)))[0]+1) #creates a list with entries grouped by identical redshift
@@ -45,13 +48,13 @@ for entry in range(len(split_by_redshift)):
     #proportion[entry] = frf.proportion_over_threshold_using_full_total(split_by_redshift[entry][:, 1:], cut_threshold)
     proportion[entry] = frf.proportion_over_threshold_using_certain_total(split_by_redshift[entry][:, 1:], cut_threshold)
 
-x_data = np.arange(0, 0.91, 0.01)
+x_data = np.arange(0, 0.91, rounding)
 
 y_data = np.zeros((0, 3))
 for index in proportion:
     y_data = np.vstack((y_data, proportion[index][0:3].astype(float)))
 
-frf.error_bar_smoothness_3(x_data, y_data[:, 0:1], y_data[:, 1:2], y_data[:, 2:3], save_name='smoothness_cut_graph_redshift_certain_classification.png', title='Galaxy Morphology with Redshift', xlabel='Redshift', ylabel='Proportion of expected predictions', ylimits=[0, 0.3], xlimits=[0.02, 0.25])
+frf.error_bar_smoothness_3(x_data, y_data[:, 0:1], y_data[:, 1:2], y_data[:, 2:3], save_name='smoothness_cut_{0}_graph_redshift_certain_classification.png'.format(cut_threshold), title='Galaxy Morphology with Redshift', xlabel='Redshift', ylabel='Proportion of expected predictions', ylimits=[0, 1], xlimits=[0.02, 0.25])
 
 
 print('\n end')
