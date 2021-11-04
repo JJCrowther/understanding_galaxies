@@ -110,7 +110,7 @@ def average_maker(input_array):
     
     return averages
 
-def proportion_over_threshold(input_array, threshold):
+def proportion_over_threshold_using_certain_total(input_array, threshold):
     """
     input_array - array of floats size (x, 4) where x can vary
     threshold - single float value designating cut-off threshold
@@ -124,6 +124,28 @@ def proportion_over_threshold(input_array, threshold):
 
     over_threshold_counts = np.array((smooth_count, featured_count, artifact_count, null_count))
     proportions = over_threshold_counts/len(input_array)
+
+    return proportions
+
+def proportion_over_threshold_using_full_total(input_array, threshold):
+    """
+    input_array - array of floats size (x, 4) where x can vary
+    threshold - single float value designating cut-off threshold
+
+    finds the proportions taking into account only the galaxies for which the liklihood of one
+    cassification is greater than the threshold value
+    """
+
+    smooth_count = np.count_nonzero(input_array[0:, 0].astype(float) >= threshold)
+    featured_count = np.count_nonzero(input_array[0:, 1].astype(float) >= threshold)
+    artifact_count = np.count_nonzero(input_array[0:, 2].astype(float) >= threshold)
+
+    positive_classification_count = np.add(smooth_count, np.add(featured_count, artifact_count))
+
+    null_count = len(input_array) - positive_classification_count
+
+    over_threshold_counts = np.array((smooth_count, featured_count, artifact_count, null_count))
+    proportions = over_threshold_counts/positive_classification_count
 
     return proportions
 

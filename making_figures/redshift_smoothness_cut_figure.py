@@ -1,6 +1,7 @@
 import numpy as np
 import functions_for_redshifting_figures as frf
 import pandas as pd
+import parquet
 
 
 print('Begin \n')
@@ -41,7 +42,8 @@ full_data_array = full_data_array[np.argsort(full_data_array[:, 4])] #sorts all 
 split_by_redshift = np.split(full_data_array, np.where(np.diff(full_data_array[:,4].astype(float)))[0]+1) #creates a list with entries grouped by identical redshift
 
 for entry in range(len(split_by_redshift)):
-    proportion[entry] = frf.proportion_over_threshold(split_by_redshift[entry][:, 1:], cut_threshold)
+    #proportion[entry] = frf.proportion_over_threshold_using_full_total(split_by_redshift[entry][:, 1:], cut_threshold)
+    proportion[entry] = frf.proportion_over_threshold_using_certain_total(split_by_redshift[entry][:, 1:], cut_threshold)
 
 x_data = np.arange(0, 0.91, 0.01)
 
@@ -49,7 +51,7 @@ y_data = np.zeros((0, 3))
 for index in proportion:
     y_data = np.vstack((y_data, proportion[index][0:3].astype(float)))
 
-frf.error_bar_smoothness_3(x_data, y_data[:, 0:1], y_data[:, 1:2], y_data[:, 2:3], save_name='smoothness_cut_graph_redshift.png', title='Galaxy Morphology with Redshift', xlabel='Redshift', ylabel='Proportion of expected predictions', ylimits=[0, 0.3], xlimits=[0.02, 0.25])
+frf.error_bar_smoothness_3(x_data, y_data[:, 0:1], y_data[:, 1:2], y_data[:, 2:3], save_name='smoothness_cut_graph_redshift_certain_classification.png', title='Galaxy Morphology with Redshift', xlabel='Redshift', ylabel='Proportion of expected predictions', ylimits=[0, 0.3], xlimits=[0.02, 0.25])
 
 
 print('\n end')
