@@ -142,9 +142,9 @@ def proportion_over_threshold_using_certain_total(input_array, threshold):
 
     positive_classification_count = np.add(smooth_count, np.add(featured_count, artifact_count))
 
-    null_count = len(input_array) - positive_classification_count
+    #null_count = len(input_array) - positive_classification_count
 
-    over_threshold_counts = np.array((smooth_count, featured_count, artifact_count, null_count))
+    over_threshold_counts = np.array((smooth_count, featured_count, artifact_count))
     if positive_classification_count == 0:
         proportions = over_threshold_counts #Removes divide by 0 error
     else:
