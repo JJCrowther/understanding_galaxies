@@ -57,15 +57,15 @@ def pie_chart_maker(values, save_name, names):
     plt.close()
     return
 
-def scatter_chart_maker(array, save_name):
-    plt.scatter(array[:, 0], array[:, 1], s=2, marker ='x')
-    plt.title('Smooth vs featured predictions off 1628 images')
-    plt.xlabel('Smoothness prediction probability')
-    plt.ylabel('Featured prediction probability')
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.savefig(save_name, dpi=200)
-    plt.close()
+def scatter_chart_maker(x_data, y_data, alpha, title, xlabel, ylabel, xlim, ylim,):
+    plt.scatter(x_data, y_data, s=2, marker ='x', alpha=alpha)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    #plt.savefig(save_name, dpi=200)
+    #plt.close()
     return
        
 def error_bar_smoothness_3(x_data, y_data_smooth, y_data_featured, y_data_artifact, save_name, title, xlabel, ylabel, ylimits, xlimits):
@@ -151,6 +151,30 @@ def proportion_over_threshold_using_certain_total(input_array, threshold):
         proportions = over_threshold_counts/positive_classification_count
 
     return proportions
+
+def variance_from_beta(input_array):
+    """
+    5 column array [name, smooth, featured, artifct, redshift]
+    """
+    cropped_input = input_array[:, 1:4].astype(float) #seperates only the wanted inputs
+    empty_variance = np.empty((0, np.size(cropped_input, 1)))
+    for line in cropped_input:
+        empty_row=np.empty((0, np.size(cropped_input, 1)))
+        for row in line:
+            alpha = row
+            beta = sum(line) - row
+
+            numerator = (alpha * beta)
+            denominator = ((alpha + beta)**2) * (alpha + beta + 1)
+            smoothness_variance = numerator/denominator #calculation
+
+            empty_row = np.append(empty_row, smoothness_variance)
+        empty_variance = np.vstack((empty_variance, empty_row))
+
+    empty_variance = np.hstack((input_array[:, 0:1], empty_variance)) #Re-add the iaunames for each row
+    empty_variance = np.hstack((empty_variance, input_array[:, 4:5]))
+
+    return empty_variance
 
 if __name__ == '__main__':
     main()

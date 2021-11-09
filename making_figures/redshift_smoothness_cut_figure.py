@@ -7,7 +7,7 @@ import pandas as pd
 print('Begin \n')
 file_name_list = ['scaled_image_predictions_1.csv', 'scaled_image_predictions_2.csv', 'scaled_image_predictions_3.csv', 'scaled_image_predictions_4.csv', 'scaled_image_predictions_5.csv', 'scaled_image_predictions_6.csv']
 
-i=0
+i=0 #index used for scale facotr multiplication
 rounding=0.02
 scale_factor_data={}
 cut_threshold = 0.7
@@ -20,7 +20,7 @@ proportions_by_redshift_by_cut = []
 parquet_file = pd.read_parquet('nsa_v1_0_1_mag_cols.parquet', columns= ['iauname', 'redshift', 'elpetro_absmag_r'])
 
 for file_name in file_name_list:
-    i+=1
+    i+=1 #will cause problems if scale factors aren't linearly listed in intervals of 1, should change
 
     scale_factor_data[file_name] = frf.file_reader(file_name)
 
