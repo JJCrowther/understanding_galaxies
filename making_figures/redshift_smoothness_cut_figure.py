@@ -2,8 +2,6 @@ import numpy as np
 import functions_for_redshifting_figures as frf
 import pandas as pd
 
-
-
 print('Begin \n')
 file_name_list = ['scaled_image_predictions_1.csv', 'scaled_image_predictions_2.csv', 'scaled_image_predictions_3.csv', 'scaled_image_predictions_4.csv', 'scaled_image_predictions_5.csv', 'scaled_image_predictions_6.csv']
 
@@ -38,7 +36,6 @@ for file_name in file_name_list:
     second_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -20 ) & (merged_dataframe["elpetro_absmag_r"] >= -21)]
     third_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -21 ) & (merged_dataframe["elpetro_absmag_r"] >= -24)]
 
-   
     merged_numpy_first_cut = first_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
     merged_numpy_second_cut = second_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
     merged_numpy_third_cut = third_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation

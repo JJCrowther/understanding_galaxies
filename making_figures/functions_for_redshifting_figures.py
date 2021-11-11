@@ -31,9 +31,33 @@ def file_reader(file_name):
     
     return smoothness
 
+def file_reader_filtered(file_name):
+    """
+    file_name - str (name and csv file to read)
+    #filter_columns - list (columns by whihc the intital data set will be selected)
+    #data_columns - list (columns to be used for plotting)
+    threshold_condition - float (value at which threshold cuttoff occurs)
+    """
+    input_file=open(file_name, 'r', encoding='utf-8-sig')
+
+    data_array=csv.DictReader(input_file)
+
+    smoothness=np.zeros((0, 7))
+
+    for line in data_array:
+        
+        smoothness_line = np.array((line['image_loc'], line['bar_strong_pred'], line['bar_weak_pred'], line['bar_no_pred'], line['smooth-or-featured_smooth_pred'], line['smooth-or-featured_featured-or-disk_pred'], line['smooth-or-featured_artifact_pred']))
+        smoothness = np.vstack((smoothness, smoothness_line))
+    
+    for i in range(np.size(smoothness, 0)):
+        for j in range(np.size(smoothness, 1)):
+            smoothness[i, j] = smoothness[i, j].replace('[', '')
+            smoothness[i, j] = smoothness[i, j].replace(']', '')
+    
+    return smoothness
 
 def prob_maker(input_array):
-
+    
     cropped_input = input_array[:, 1:4].astype(float)
     empty_probabilities = np.empty((0, np.size(cropped_input, 1)))
     for line in cropped_input:
@@ -47,6 +71,36 @@ def prob_maker(input_array):
     #empty_probabilities = np.vstack((prob_headers, empty_probabilities)) #Re-add names for columns
     empty_probabilities = np.hstack((input_array[:, 0:1], empty_probabilities)) #Re-add the iaunames for each row
     empty_probabilities = np.hstack((empty_probabilities, input_array[:, 4:5]))
+
+    return empty_probabilities
+
+def prob_maker_filtered(input_array):
+    """
+    input_array - numpy array of str
+    """
+    cropped_input_filter = input_array[:, 1:4].astype(float)
+    cropped_input_data = input_array[:, 4:7].astype(float)
+    
+    empty_probabilities_filter = np.empty((0, np.size(cropped_input_filter, 1)))
+    empty_probabilities_data = np.empty((0, np.size(cropped_input_data, 1)))
+
+    for line in cropped_input_filter:
+        empty_row=np.empty((0, np.size(cropped_input_filter, 1)))
+        for row in line:
+            smoothness_probability = row/sum(line)
+            empty_row = np.append(empty_row, smoothness_probability)
+        empty_probabilities_filter = np.vstack((empty_probabilities_filter, empty_row))
+
+    for line in cropped_input_data:
+        empty_row=np.empty((0, np.size(cropped_input_data, 1)))
+        for row in line:
+            smoothness_probability = row/sum(line)
+            empty_row = np.append(empty_row, smoothness_probability)
+        empty_probabilities_data = np.vstack((empty_probabilities_data, empty_row))
+    
+    #empty_probabilities = np.vstack((prob_headers, empty_probabilities)) #Re-add names for columns
+    empty_probabilities = np.hstack((input_array[:, 0:1], empty_probabilities_filter)) #Re-add the iaunames for each row
+    empty_probabilities = np.hstack((empty_probabilities, empty_probabilities_data))
 
     return empty_probabilities
 
