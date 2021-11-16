@@ -18,7 +18,7 @@ PYTHON=/share/nas/walml/miniconda3/envs/zoobot/bin/python
 
 FITS_DIR=/share/nas/walml/galaxy_zoo/decals/dr5/fits_native/J000
 
-SCALE_FACTOR=1
+SCALE_FACTOR=1.2
 SCALED_IMG_DIR=/share/nas/walml/repos/understanding_galaxies/scaled_$SCALE_FACTOR
 
 $PYTHON $ZOOBOT_DIR/creating_image_main.py \
