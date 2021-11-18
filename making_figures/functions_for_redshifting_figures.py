@@ -230,14 +230,14 @@ def variance_from_beta(input_array):
 
     return empty_variance
 
-def gaussian_wieghtings(p, z, p_0, z_0, delta_p, delta_z):
+def gaussian_weightings(p, z, p_0, z_0, delta_p, delta_z):
     """
     
     """
-    prefactor = (2*np.pi*((delta_z**2)+(delta_p)**2))**(-1/2)
+    #prefactor = (2*np.pi*((delta_z**2)+(delta_p)**2))**(-1/2)
     exponent = np.exp(-((((z - z_0)**2)/(2*(delta_z**2))) + (((p - p_0)**2)/(2*(delta_p**2)))))
 
-    gaussian_factor = prefactor * exponent
+    gaussian_factor = exponent #prefactor 
     return gaussian_factor
 
 if __name__ == '__main__':
