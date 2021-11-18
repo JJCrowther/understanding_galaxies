@@ -240,5 +240,13 @@ def gaussian_weightings(p, z, p_0, z_0, delta_p, delta_z):
     gaussian_factor = exponent #prefactor 
     return gaussian_factor
 
+def chi_squared(observed, expected, variance):
+    """
+    """
+    numerator = (expected - observed)**2
+    denominator = variance
+    chi_squared = numerator/denominator
+    return chi_squared
+
 if __name__ == '__main__':
     main()

@@ -6,26 +6,31 @@ import numpy as np
 #frf for file opening and plotting functions
 import functions_for_redshifting_figures as frf
 
-print('\nstart')
+print('\nStart')
 
 if __name__ == '__main__':
     
-    delta_z = 0.01
-    delta_p = 0.025
-    
-    test_z = 0.2308291643857956
-    test_p = 0.4432387127766238
-    pred_z = 0.1154145821928978
+    delta_z = 0.01 #sets width of sample box
+    delta_p = 0.025 #sets height of smaple box
+    delta_mag = 0.7 #Vary to find better base value
 
-    upper_z = test_z + delta_z
-    lower_z = test_z - delta_z
-    upper_p = test_p + delta_p
-    lower_p =test_p - delta_p
+    #Individual galaxy tunable test parameters
+    #test_z = 0.2308291643857956
+    #pred_z = 0.1154145821928978
+    #actual_p = 0.5717100280287778
+    #test_p = 0.4432387127766238
+    #test_mag = -19.726
+
+    #Set values for smapling 
+    #upper_z = test_z + delta_z
+    #lower_z = test_z - delta_z
+    #upper_p = test_p + delta_p
+    #lower_p =test_p - delta_p
     
-    rounding=0.02
     scale_factor_data={}
-    cut_threshold = 0.7
-    full_data_array_first_cut=np.zeros((0, 5))
+    full_data_array_first_cut=np.zeros((0, 6))
+    full_data_array_first_cut_var=np.zeros((0, 6))
+    chi_squared_list=[]
 
         # The data
 
@@ -49,28 +54,25 @@ if __name__ == '__main__':
         merged_dataframe['redshift']=merged_dataframe['redshift'].clip(lower=1e-10) #removes any negative errors
         merged_dataframe['redshift']=merged_dataframe['redshift'].mul(scale_factor_multiplier[i]) #Multiplies the redshift by the scalefactor
 
-        first_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -18 ) & (merged_dataframe["elpetro_absmag_r"] >= -20) & (merged_dataframe["redshift"] <= 0.25)]
-        #second_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -20 ) & (merged_dataframe["elpetro_absmag_r"] >= -21)]
-        #third_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -21 ) & (merged_dataframe["elpetro_absmag_r"] >= -24)]
-
+        first_mag_cut = merged_dataframe[(merged_dataframe["elpetro_absmag_r"] < -18 ) & (merged_dataframe["elpetro_absmag_r"] >= -24) & (merged_dataframe["redshift"] <= 0.25)]
+        
         merged_numpy_first_cut = first_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
-        #merged_numpy_second_cut = second_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
-        #merged_numpy_third_cut = third_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
-
+        
         numpy_merged_probs_first_cut = frf.prob_maker(merged_numpy_first_cut)
-        #numpy_merged_probs_second_cut = frf.prob_maker(merged_numpy_second_cut)
-        #numpy_merged_probs_third_cut = frf.prob_maker(merged_numpy_third_cut)
+        numpy_merged_var_first_cut = frf.variance_from_beta(merged_numpy_first_cut)
+
+        numpy_merged_probs_first_cut = np.hstack((numpy_merged_probs_first_cut, merged_numpy_first_cut[:, -1:]))
+        numpy_merged_var_first_cut = np.hstack((numpy_merged_var_first_cut, merged_numpy_first_cut[:, -1:]))
 
         full_data_array_first_cut=np.vstack((full_data_array_first_cut, numpy_merged_probs_first_cut)) #stacks all data from current redshift to cumulative array
-        #full_data_array_second_cut=np.vstack((full_data_array_second_cut, numpy_merged_probs_second_cut)) #stacks all data from current redshift to cumulative array
-        #full_data_array_third_cut=np.vstack((full_data_array_third_cut, numpy_merged_probs_third_cut)) #stacks all data from current redshift to cumulative array
-
+        full_data_array_first_cut_var=np.vstack((full_data_array_first_cut_var, numpy_merged_var_first_cut))
         i+=1 
 
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:5, 0]
+    test_sample_names = full_data_array_first_cut[20:70, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
+    full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
     test_sample = pd.DataFrame(columns=full_dataframe.columns)
 
     for name in test_sample_names:
@@ -78,85 +80,126 @@ if __name__ == '__main__':
         rows = full_dataframe.loc[cond, :]
         test_sample = test_sample.append(rows ,ignore_index=True)
         full_dataframe.drop(rows.index, inplace=True)
+        full_dataframe_var.drop(rows.index, inplace=True)
+
+    #If we want to operate over multiple galaxies, start a for loop here
+    for name in test_sample_names:
+
+        test_galaxy = test_sample[test_sample[0] == name]
+        gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
+        gal_min_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmin()]]
+        test_z = gal_max_z[4].astype(float).to_numpy()[0]
+        test_p = gal_max_z[1].astype(float).to_numpy()[0]
+        pred_z = gal_min_z[4].astype(float).to_numpy()[0]
+        actual_p = gal_min_z[1].astype(float).to_numpy()[0]
+        test_mag = gal_max_z[5].astype(float).to_numpy()[0]
+
+        #Set values for smapling 
+        upper_z = test_z + delta_z
+        lower_z = test_z - delta_z
+        upper_p = test_p + delta_p
+        lower_p =test_p - delta_p
+
+        immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
+        unique_names = pd.unique(immediate_sub_sample[0])
+            
+        sim_sub_set = pd.DataFrame()
+        sim_sub_set_var = pd.DataFrame()
+        for name in unique_names:
+            sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
+            sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
         
-    immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
-    unique_names = pd.unique(immediate_sub_sample[0])
+
+        #Let's make some predictions
+
+        prediction_list=[]
+        weight_list = []
+
+        for name in unique_names:
+            galaxy_data = sim_sub_set[sim_sub_set[0] == name]
+
+            abs_diff_pred_z = abs(galaxy_data[4].astype(float) - pred_z)
+            min_pos_pred = abs_diff_pred_z.idxmin()
+
+            abs_diff_test_z = abs(galaxy_data[4].astype(float) - test_z)
+            min_pos_test = abs_diff_test_z.idxmin()
+            
+            estimate_predictions = galaxy_data.loc[[min_pos_pred]]
+            closest_vals = galaxy_data.loc[[min_pos_test]] #Possible could encounter edge case issues
+            
+            gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
+            gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
+            gaussian_mag_variable = closest_vals[5].astype(float).to_numpy()[0]
+
+            proximity_weight = frf.gaussian_weightings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p/2, delta_z/2)
+            mag_weight = frf.gaussian_weightings(gaussian_mag_variable, 0, test_mag, 0, delta_mag, 1)
+
+            weight = proximity_weight * mag_weight
+
+            #print('mag_weight is:', mag_weight, '\nprox_wieght is:', proximity_weight, '\nTotal Weight is:', weight)
+
+            prediction_list.append(estimate_predictions[1].astype(float).to_numpy()[0])
+            weight_list.append(weight)
+
+        mean_prediction = np.mean(prediction_list)
+        mean_std = np.std(prediction_list)
+
+        weighted_mean_numerator = np.sum(np.array(weight_list) * np.array(prediction_list))
+        weighted_mean_denominator = np.sum(np.array(weight_list))
+        weighted_mean = weighted_mean_numerator/weighted_mean_denominator
+
+        weighted_std_numerator = np.sum(np.array(weight_list)*((np.array(prediction_list) - weighted_mean)**2))
+        weighted_std_denominator = np.sum(np.array(weight_list))
+        weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
+
+        #finding a chi squared value
+        chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2)
+        chi_squared_list.append(chi_squared)
+
+        #plt.figure(figsize=(10,6))
+        #plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), name), fontsize=18)
         
-    sim_sub_set = pd.DataFrame()
-    for name in unique_names:
-        sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
-    
+        """
+        plt.subplot(121)
+        for name in unique_names:
+            data_to_plot = sim_sub_set[sim_sub_set[0] == name]
+            x_data = np.asarray(data_to_plot[4]).astype(float)
+            y_data = np.asarray(data_to_plot[1]).astype(float)
+            
+            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+        plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.3f}\nunweighted std = {1:.3f}'.format(mean_prediction, mean_std)) #plotting raw average
+        plt.xlabel('Redshift')
+        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlim([0, 0.25])
+        plt.ylim([0, 1])
+        plt.legend()
+        """
+        """
+        plt.subplot(111)
+        for name in unique_names:
+            data_to_plot = sim_sub_set[sim_sub_set[0] == name]
+            var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
+            x_data = np.asarray(data_to_plot[4]).astype(float)
+            y_data = np.asarray(data_to_plot[1]).astype(float)
+            y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
+            
+            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+            #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
 
-    #Let's make some predictions
+        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
+        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
+        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
 
-    prediction_list=[]
-    weight_list = []
+        plt.xlabel('Redshift')
+        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlim([0, 0.25])
+        plt.ylim([0, 1])
+        plt.legend()
 
-    for name in unique_names:
-        galaxy_data = sim_sub_set[sim_sub_set[0] == name]
-
-        abs_diff_pred_z = abs(galaxy_data[4].astype(float) - pred_z)
-        min_pos_pred = abs_diff_pred_z.idxmin()
-
-        abs_diff_test_z = abs(galaxy_data[4].astype(float) - test_z)
-        min_pos_test = abs_diff_test_z.idxmin()
-        
-        estimate_predictions = galaxy_data.loc[[min_pos_pred]]
-        closest_vals = galaxy_data.loc[[min_pos_test]] #Possible could encounter edge case issues
-        
-        gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
-        gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
-
-        weight = frf.gaussian_weightings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p/2, delta_z/2)
-
-        prediction_list.append(estimate_predictions[1].astype(float).to_numpy()[0])
-        weight_list.append(weight)
-
-    mean_prediction = np.mean(prediction_list)
-    mean_std = np.std(prediction_list)
-
-    weighted_mean_numerator = np.sum(np.array(weight_list) * np.array(prediction_list))
-    weighted_mean_denominator = np.sum(np.array(weight_list))
-    weighted_mean = weighted_mean_numerator/weighted_mean_denominator
-
-    weighted_std_numerator = np.sum(np.array(weight_list)*((np.array(prediction_list) - weighted_mean)**2))
-    weighted_std_denominator = np.sum(np.array(weight_list))
-    weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
-
-    plt.figure(figsize=(10,6))
-    plt.suptitle('Individual Galaxy Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names)), fontsize=18)
-    
-    """
-    plt.subplot(121)
-    for name in unique_names:
-        data_to_plot = sim_sub_set[sim_sub_set[0] == name]
-        x_data = np.asarray(data_to_plot[4]).astype(float)
-        y_data = np.asarray(data_to_plot[1]).astype(float)
-        
-        plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-    plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.3f}\nunweighted std = {1:.3f}'.format(mean_prediction, mean_std)) #plotting raw average
-    plt.xlabel('Redshift')
-    plt.ylabel('Prediction of Smoothness Liklihood')
-    plt.xlim([0, 0.25])
-    plt.ylim([0, 1])
-    plt.legend()
-    """
-
-    plt.subplot(111)
-    for name in unique_names:
-        data_to_plot = sim_sub_set[sim_sub_set[0] == name]
-        x_data = np.asarray(data_to_plot[4]).astype(float)
-        y_data = np.asarray(data_to_plot[1]).astype(float)
-        
-        plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-    plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift={2:.3f}'.format(weighted_mean, weighted_std, pred_z)) #plotting average weighted by 2D gaussian
-    plt.xlabel('Redshift')
-    plt.ylabel('Prediction of Smoothness Liklihood')
-    plt.xlim([0, 0.25])
-    plt.ylim([0, 1])
-    plt.legend()
-
-    plt.savefig('subset_galaxies_with_prediction.png', dpi=200)
-    plt.close()
-
+        plt.savefig('prediction_for_{0}.png'.format(name), dpi=200)
+        plt.close()
+        """
+    total_chi_squared=np.sum(chi_squared_list)
+    reduced_chi_squared = total_chi_squared/len(test_sample_names)
+    print('Total summed chi-squared: {0:.3f}\nReduced Chi-squared is: {1:.3f}').format(total_chi_squared, reduced_chi_squared)
     print('End')
