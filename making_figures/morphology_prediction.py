@@ -1,3 +1,4 @@
+from numpy.core.numeric import full
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,9 +13,9 @@ if __name__ == '__main__':
     delta_z = 0.01
     delta_p = 0.025
     
-    test_z = 0.17
-    test_p = 0.3
-    pred_z = 0.15
+    test_z = 0.2308291643857956
+    test_p = 0.4432387127766238
+    pred_z = 0.1154145821928978
 
     upper_z = test_z + delta_z
     lower_z = test_z - delta_z
@@ -64,16 +65,27 @@ if __name__ == '__main__':
         #full_data_array_second_cut=np.vstack((full_data_array_second_cut, numpy_merged_probs_second_cut)) #stacks all data from current redshift to cumulative array
         #full_data_array_third_cut=np.vstack((full_data_array_third_cut, numpy_merged_probs_third_cut)) #stacks all data from current redshift to cumulative array
 
-        full_dataframe = pd.DataFrame(full_data_array_first_cut)
+        i+=1 
+
+    #Remove the test sample
+    test_sample_names = full_data_array_first_cut[0:5, 0]
+
+    full_dataframe = pd.DataFrame(full_data_array_first_cut)
+    test_sample = pd.DataFrame(columns=full_dataframe.columns)
+
+    for name in test_sample_names:
+        cond = full_dataframe[0] == name
+        rows = full_dataframe.loc[cond, :]
+        test_sample = test_sample.append(rows ,ignore_index=True)
+        full_dataframe.drop(rows.index, inplace=True)
         
-        immediate_sub_sample = pd.DataFrame(full_data_array_first_cut[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)])
-        unique_names = pd.unique(immediate_sub_sample[0])
+    immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
+    unique_names = pd.unique(immediate_sub_sample[0])
         
-        sim_sub_set = pd.DataFrame()
-        for name in unique_names:
-            sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
-        
-        i+=1 #will cause problems if scale factors aren't linearly listed in intervals of 1, should change
+    sim_sub_set = pd.DataFrame()
+    for name in unique_names:
+        sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
+    
 
     #Let's make some predictions
 
@@ -95,7 +107,7 @@ if __name__ == '__main__':
         gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
         gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
 
-        weight = frf.gaussian_wieghtings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p, delta_z)
+        weight = frf.gaussian_weightings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p/2, delta_z/2)
 
         prediction_list.append(estimate_predictions[1].astype(float).to_numpy()[0])
         weight_list.append(weight)
@@ -112,8 +124,9 @@ if __name__ == '__main__':
     weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
 
     plt.figure(figsize=(10,6))
-    plt.suptitle('Individual Galaxy Morphology Near Test\nValue Parameters z={0} p={1}'.format(test_z, test_p), fontsize=18)
+    plt.suptitle('Individual Galaxy Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names)), fontsize=18)
     
+    """
     plt.subplot(121)
     for name in unique_names:
         data_to_plot = sim_sub_set[sim_sub_set[0] == name]
@@ -121,22 +134,24 @@ if __name__ == '__main__':
         y_data = np.asarray(data_to_plot[1]).astype(float)
         
         plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-    plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.2f}\nunweighted std = {1:.2f}'.format(mean_prediction, mean_std)) #plotting raw average
+    plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.3f}\nunweighted std = {1:.3f}'.format(mean_prediction, mean_std)) #plotting raw average
     plt.xlabel('Redshift')
     plt.ylabel('Prediction of Smoothness Liklihood')
     plt.xlim([0, 0.25])
     plt.ylim([0, 1])
     plt.legend()
+    """
 
-    plt.subplot(122)
+    plt.subplot(111)
     for name in unique_names:
         data_to_plot = sim_sub_set[sim_sub_set[0] == name]
         x_data = np.asarray(data_to_plot[4]).astype(float)
         y_data = np.asarray(data_to_plot[1]).astype(float)
         
         plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-    plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='weighted mean = {0:.2f}\nweighted std = {1:.2f}'.format(weighted_mean, weighted_std)) #plotting average weighted by 2D gaussian
+    plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift={2:.3f}'.format(weighted_mean, weighted_std, pred_z)) #plotting average weighted by 2D gaussian
     plt.xlabel('Redshift')
+    plt.ylabel('Prediction of Smoothness Liklihood')
     plt.xlim([0, 0.25])
     plt.ylim([0, 1])
     plt.legend()
