@@ -9,7 +9,6 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    
     delta_z = 0.01 #sets width of sample box
     delta_p = 0.025 #sets height of smaple box
     delta_mag = 0.7 #Vary to find better base value
@@ -68,8 +67,9 @@ if __name__ == '__main__':
         full_data_array_first_cut_var=np.vstack((full_data_array_first_cut_var, numpy_merged_var_first_cut))
         i+=1 
 
+    print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[20:70, 0] 
+    test_sample_names = full_data_array_first_cut[20:100, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -82,6 +82,7 @@ if __name__ == '__main__':
         full_dataframe.drop(rows.index, inplace=True)
         full_dataframe_var.drop(rows.index, inplace=True)
 
+    print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
     for name in test_sample_names:
 
@@ -109,12 +110,13 @@ if __name__ == '__main__':
             sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
             sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
         
-
+        
         #Let's make some predictions
 
         prediction_list=[]
         weight_list = []
 
+    
         for name in unique_names:
             galaxy_data = sim_sub_set[sim_sub_set[0] == name]
 
@@ -140,7 +142,7 @@ if __name__ == '__main__':
 
             prediction_list.append(estimate_predictions[1].astype(float).to_numpy()[0])
             weight_list.append(weight)
-
+        
         mean_prediction = np.mean(prediction_list)
         mean_std = np.std(prediction_list)
 
@@ -199,7 +201,10 @@ if __name__ == '__main__':
         plt.savefig('prediction_for_{0}.png'.format(name), dpi=200)
         plt.close()
         """
+    print('Predictions made, calculating Chi-Squared')
     total_chi_squared=np.sum(chi_squared_list)
     reduced_chi_squared = total_chi_squared/len(test_sample_names)
-    print('Total summed chi-squared: {0:.3f}\nReduced Chi-squared is: {1:.3f}').format(total_chi_squared, reduced_chi_squared)
+    print('Total summed chi-squared: {0:.3f}\nReduced Chi-squared is: {1:.3f}'.format(total_chi_squared, reduced_chi_squared))
+
+    
     print('End')
