@@ -31,6 +31,25 @@ def file_reader(file_name):
     
     return smoothness
 
+def file_reader_extra_params(file_name):
+    input_file=open(file_name, 'r', encoding='utf-8-sig')
+
+    data_array=csv.DictReader(input_file)
+
+    smoothness=np.zeros((0, 7))
+
+    for line in data_array:
+
+        smoothness_line = np.array((line['image_loc'], line['smooth-or-featured_smooth_pred'], line['smooth-or-featured_featured-or-disk_pred'], line['smooth-or-featured_artifact_pred'], line['how-rounded_round_pred'], line['how-rounded_in-between_pred'], line['how-rounded_cigar-shaped_pred']))
+        smoothness = np.vstack((smoothness, smoothness_line))
+    
+    for i in range(np.size(smoothness, 0)):
+        for j in range(np.size(smoothness, 1)):
+            smoothness[i, j] = smoothness[i, j].replace('[', '')
+            smoothness[i, j] = smoothness[i, j].replace(']', '')
+    
+    return smoothness
+
 def file_reader_filtered(file_name):
     """
     file_name - str (name and csv file to read)
@@ -240,10 +259,22 @@ def gaussian_weightings(p, z, p_0, z_0, delta_p, delta_z):
     gaussian_factor = exponent #prefactor 
     return gaussian_factor
 
-def chi_squared(observed, expected, variance):
+def shape_weight(shape_of_test_gal, shape_of_sample_gal):
+    """
+    - 3 shape probabilities
+    - 3 true shape probabilities
+
+    output set to return 1 for an identical galaxy and 0 for a completely opposite galaxy
+    """
+    diff = np.abs(shape_of_test_gal - shape_of_sample_gal)
+    normalised_sum_of_diff = np.sum(diff)/3
+    shape_weighting = 1 - normalised_sum_of_diff
+    return shape_weighting
+
+def chi_squared(observed, expected, variance, power):
     """
     """
-    numerator = (expected - observed)**2
+    numerator = (expected - observed)**power
     denominator = variance
     chi_squared = numerator/denominator
     return chi_squared

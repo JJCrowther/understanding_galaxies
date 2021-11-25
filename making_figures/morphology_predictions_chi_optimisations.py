@@ -10,10 +10,11 @@ print('\nStart')
 
 if __name__ == '__main__':
     running_chi_squared=[]
-    for delta_z in np.arange(0.005, 0.026, 0.002):
-        #delta_z = 0.01 #sets width of sample box
-        delta_p = 0.025 #sets height of smaple box
-        delta_mag = 0.7 #Vary to find better base value
+    range=np.arange(0.25, 0.76, 0.05)
+    for delta_mag in range:
+        delta_z = 0.007 #sets width of sample box
+        delta_p = 0.016 #sets height of smaple box
+        #delta_mag = 0.7 #Vary to find better base value
 
         #Individual galaxy tunable test parameters
         #test_z = 0.2308291643857956
@@ -68,7 +69,7 @@ if __name__ == '__main__':
             full_data_array_first_cut=np.vstack((full_data_array_first_cut, numpy_merged_probs_first_cut)) #stacks all data from current redshift to cumulative array
             full_data_array_first_cut_var=np.vstack((full_data_array_first_cut_var, numpy_merged_var_first_cut))
             i+=1 
-        print('Data for delta_z={} read, moving onto predictions'.format(delta_z))
+        print('Data for delta_mag={} read, moving onto predictions'.format(delta_mag))
         #Remove the test sample
         test_sample_names = full_data_array_first_cut[20:100, 0] 
 
@@ -154,8 +155,9 @@ if __name__ == '__main__':
             weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
 
             #finding a chi squared value
-            chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2)
-            chi_squared_list.append(chi_squared)
+            chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2, 2)
+            adapted_chi_squared = chi_squared * delta_p
+            chi_squared_list.append(adapted_chi_squared)
 
             #plt.figure(figsize=(10,6))
             #plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), name), fontsize=18)
@@ -205,18 +207,18 @@ if __name__ == '__main__':
         print('Total summed chi-squared: {0:.3f}\nReduced Chi-squared is: {1:.3f}'.format(total_chi_squared, reduced_chi_squared))
 
         running_chi_squared.append(reduced_chi_squared)
-        print('Finished {0:.3f} pass'.format(delta_z))
+        print('Finished {0:.3f} pass'.format(delta_mag))
 
     plt.figure(figsize=(10,6))
-    plt.suptitle('Optimising Reduced $\chi^2$ Parameters (Redshift ranges)', fontsize=18)
-    plt.errorbar(np.arange(0.005, 0.026, 0.002), running_chi_squared, marker ='x', alpha=1, label='Reduced Chi-Squared')
-    plt.xlabel('Redshift range')
-    plt.ylabel('Reduced $\chi^2$')
+    plt.suptitle('Optimising Adapted Reduced $\chi^2$ Parameters (Mag ranges)', fontsize=18)
+    plt.errorbar(range, running_chi_squared, marker ='x', alpha=1, label='Adapted Reduced Chi-Squared')
+    plt.xlabel('Magnitude range')
+    plt.ylabel('Adapted Reduced $\chi^2$')
     #plt.xlim([0, 0.25])
     #plt.ylim([0, 1])
     plt.legend()
 
-    plt.savefig('optimising_reduced_chi_squared_redshift.png'.format(name), dpi=200)
+    plt.savefig('optimising_adapted_reduced_chi_squared_mag.png'.format(name), dpi=200)
     plt.close()
 
     print('End')
