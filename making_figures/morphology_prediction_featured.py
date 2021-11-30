@@ -9,9 +9,9 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.01 #sets width of sample box
-    delta_p = 0.025 #sets height of smaple box
-    delta_mag = 0.7 #Vary to find better base value
+    delta_z = 0.008 #sets width of sample box
+    delta_p = 0.016 #sets height of smaple box
+    delta_mag = 0.5 #Vary to find better base value
 
     #Individual galaxy tunable test parameters
     #test_z = 0.2308291643857956
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[20:100, 0] 
+    test_sample_names = full_data_array_first_cut[0:5, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -84,15 +84,15 @@ if __name__ == '__main__':
 
     print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
-    for name in test_sample_names:
-
-        test_galaxy = test_sample[test_sample[0] == name]
+    for test_name in test_sample_names:
+    
+        test_galaxy = test_sample[test_sample[0] == test_name]
         gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
         gal_min_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmin()]]
         test_z = gal_max_z[4].astype(float).to_numpy()[0]
-        test_p = gal_max_z[1].astype(float).to_numpy()[0]
+        test_p = gal_max_z[2].astype(float).to_numpy()[0]
         pred_z = gal_min_z[4].astype(float).to_numpy()[0]
-        actual_p = gal_min_z[1].astype(float).to_numpy()[0]
+        actual_p = gal_min_z[2].astype(float).to_numpy()[0]
         test_mag = gal_max_z[5].astype(float).to_numpy()[0]
 
         #Set values for smapling 
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         upper_p = test_p + delta_p
         lower_p =test_p - delta_p
 
-        immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
+        immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[2].astype(float) >= lower_p) & (full_dataframe[2].astype(float) <= upper_p)]
         unique_names = pd.unique(immediate_sub_sample[0])
             
         sim_sub_set = pd.DataFrame()
@@ -121,15 +121,27 @@ if __name__ == '__main__':
             galaxy_data = sim_sub_set[sim_sub_set[0] == name]
 
             abs_diff_pred_z = abs(galaxy_data[4].astype(float) - pred_z)
-            min_pos_pred = abs_diff_pred_z.idxmin()
+            min_pos_pred = abs_diff_pred_z.nsmallest(2).index[0] #nsmallest pickest the n smallest values and puts them in df
+            next_min_pos_pred = abs_diff_pred_z.nsmallest(2).index[1]
 
             abs_diff_test_z = abs(galaxy_data[4].astype(float) - test_z)
-            min_pos_test = abs_diff_test_z.idxmin()
-            
+            min_pos_test = abs_diff_test_z.nsmallest(2).index[0] #nsmallest pickest the n smallest values and puts them in df
+            nextmin_pos_test = abs_diff_test_z.nsmallest(2).index[1]
+
             estimate_predictions = galaxy_data.loc[[min_pos_pred]]
+            grad_reference = galaxy_data.loc[[next_min_pos_pred]]
+
+            diff_y = estimate_predictions[2].astype(float).to_numpy()[0] - grad_reference[2].astype(float).to_numpy()[0]
+            diff_x = estimate_predictions[4].astype(float).to_numpy()[0] - grad_reference[4].astype(float).to_numpy()[0] #the astype and to numpy are to extract numbers from dataframe
+            gradient = diff_y / diff_x #Finding the gradient between the two points closest to the test value
+
+            minimum_point_seperation = pred_z - estimate_predictions[4].astype(float).to_numpy()[0]
+            grad_correction = gradient * minimum_point_seperation
+            grad_corrected_prediction = estimate_predictions[2].astype(float).to_numpy()[0] + grad_correction
+
             closest_vals = galaxy_data.loc[[min_pos_test]] #Possible could encounter edge case issues
             
-            gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
+            gaussain_p_variable = closest_vals[2].astype(float).to_numpy()[0]
             gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
             gaussian_mag_variable = closest_vals[5].astype(float).to_numpy()[0]
 
@@ -140,7 +152,7 @@ if __name__ == '__main__':
 
             #print('mag_weight is:', mag_weight, '\nprox_wieght is:', proximity_weight, '\nTotal Weight is:', weight)
 
-            prediction_list.append(estimate_predictions[1].astype(float).to_numpy()[0])
+            prediction_list.append(grad_corrected_prediction)
             weight_list.append(weight)
         
         mean_prediction = np.mean(prediction_list)
@@ -155,11 +167,11 @@ if __name__ == '__main__':
         weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
 
         #finding a chi squared value
-        chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2)
+        chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2, 2)
         chi_squared_list.append(chi_squared)
 
-        #plt.figure(figsize=(10,6))
-        #plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), name), fontsize=18)
+        plt.figure(figsize=(10,6))
+        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
         
         """
         plt.subplot(121)
@@ -176,14 +188,14 @@ if __name__ == '__main__':
         plt.ylim([0, 1])
         plt.legend()
         """
-        """
+        
         plt.subplot(111)
         for name in unique_names:
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
             var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
             x_data = np.asarray(data_to_plot[4]).astype(float)
-            y_data = np.asarray(data_to_plot[1]).astype(float)
-            y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
+            y_data = np.asarray(data_to_plot[2]).astype(float)
+            y_err = np.sqrt(np.asarray(var_to_plot[2]).astype(float))
             
             plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
@@ -193,14 +205,14 @@ if __name__ == '__main__':
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
 
         plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.ylabel('Prediction of Featured Liklihood')
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
         plt.legend()
 
-        plt.savefig('prediction_for_{0}.png'.format(name), dpi=200)
+        plt.savefig('prediction_for_{0}_featured.png'.format(test_name), dpi=200)
         plt.close()
-        """
+        
     print('Predictions made, calculating Chi-Squared')
     total_chi_squared=np.sum(chi_squared_list)
     reduced_chi_squared = total_chi_squared/len(test_sample_names)

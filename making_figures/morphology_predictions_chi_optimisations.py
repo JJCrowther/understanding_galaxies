@@ -85,9 +85,9 @@ if __name__ == '__main__':
             full_dataframe_var.drop(rows.index, inplace=True)
 
         #If we want to operate over multiple galaxies, start a for loop here
-        for name in test_sample_names:
+        for test_name in test_sample_names:
 
-            test_galaxy = test_sample[test_sample[0] == name]
+            test_galaxy = test_sample[test_sample[0] == test_name]
             gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
             gal_min_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmin()]]
             test_z = gal_max_z[4].astype(float).to_numpy()[0]
@@ -199,7 +199,7 @@ if __name__ == '__main__':
             plt.ylim([0, 1])
             plt.legend()
 
-            plt.savefig('prediction_for_{0}.png'.format(name), dpi=200)
+            plt.savefig('prediction_for_{0}.png'.format(test_name), dpi=200)
             plt.close()
             """
         total_chi_squared=np.sum(chi_squared_list)
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     #plt.ylim([0, 1])
     plt.legend()
 
-    plt.savefig('optimising_adapted_reduced_chi_squared_mag.png'.format(name), dpi=200)
+    plt.savefig('optimising_adapted_reduced_chi_squared_mag.png'.format(test_name), dpi=200)
     plt.close()
 
     print('End')
