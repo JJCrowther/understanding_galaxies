@@ -2,6 +2,7 @@ from numpy.core.numeric import full
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle
 
 #frf for file opening and plotting functions
 import functions_for_redshifting_figures as frf
@@ -9,9 +10,9 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.008 #sets width of sample box
-    delta_p = 0.016 #sets height of smaple box
-    delta_mag = 0.5 #Vary to find better base value
+    delta_z = 0.2 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.6 #sets height of smaple box - Default optimised = 0.016
+    delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters
     #test_z = 0.2308291643857956
@@ -69,7 +70,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:5, 0] 
+    test_sample_names = full_data_array_first_cut[0:1, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -203,6 +204,12 @@ if __name__ == '__main__':
         plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
+        #Add a box showing which data will be included by the sampling method - (gca = get current axes), zorder - brings box in front of lines
+        #inputs Rectangle((x_bottom_left, y_bottom_left), width, height, angle(optional), colour='')
+        #plt.gca().add_patch(Rectangle((test_z - 0.05, test_p - 0.2), 2*0.05, 2*0.2, color="red", zorder=3, alpha=0.5)) #Largest box for delta_z = 0.05, delta_p = 0.2
+        #plt.gca().add_patch(Rectangle((test_z - 0.015, test_p - 0.1), 2*0.015, 2*0.1, color="blue", zorder=3, alpha=0.5)) #Medium box for delta_z = 0.015, delta_p = 0.1
+        #plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.5)) #Smallest box for delta_z = 0.008, delta_p = 0.016
+
 
         plt.xlabel('Redshift')
         plt.ylabel('Prediction of Smoothness Liklihood')
@@ -210,6 +217,7 @@ if __name__ == '__main__':
         plt.ylim([0, 1])
         plt.legend()
 
+        #plt.savefig('Expalining_how_sample_non_sampled_box3.png'.format(test_name), dpi=200)
         plt.savefig('prediction_for_{0}_gradcorr.png'.format(test_name), dpi=200)
         plt.close()
         
