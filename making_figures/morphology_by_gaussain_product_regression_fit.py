@@ -1,17 +1,26 @@
+#import core data handling and plotting libraries
 from numpy.core.numeric import full
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+#import the rectangle plot library
+from matplotlib.patches import Rectangle
+
 #frf for file opening and plotting functions
 import functions_for_redshifting_figures as frf
+
+#import the GPR libraries
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import Matern
 
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.008 #sets width of sample box
-    delta_p = 0.01 #sets height of smaple box
-    delta_mag = 0.7 #Vary to find better base value
+    delta_z = 0.01 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.02 #sets height of smaple box - Default optimised = 0.016
+    delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters
     #test_z = 0.2308291643857956
@@ -27,8 +36,8 @@ if __name__ == '__main__':
     #lower_p =test_p - delta_p
     
     scale_factor_data={}
-    full_data_array_first_cut=np.zeros((0, 9))
-    full_data_array_first_cut_var=np.zeros((0, 9))
+    full_data_array_first_cut=np.zeros((0, 6))
+    full_data_array_first_cut_var=np.zeros((0, 6))
     chi_squared_list=[]
 
         # The data
@@ -41,10 +50,10 @@ if __name__ == '__main__':
 
     for file_name in file_name_list:
 
-        scale_factor_data[file_name] = frf.file_reader_extra_params(file_name)
+        scale_factor_data[file_name] = frf.file_reader(file_name)
 
         scale_factor_dataframe = pd.DataFrame(scale_factor_data[file_name])
-        scale_factor_dataframe.rename(columns={0: 'iauname', 1:'smooth-or-featured_smooth_pred', 2:'smooth-or-featured_featured-or-disk_pred', 3:'smooth-or-featured_artifact_pred', 4:'how-rounded_round_pred', 5:'how-rounded_in-between_pred', 6:'how-rounded_cigar-shaped_pred'}, inplace=True) #rename the headers of the dataframe
+        scale_factor_dataframe.rename(columns={0: 'iauname', 1:'smooth-or-featured_smooth_pred', 2:'smooth-or-featured_featured-or-disk_pred', 3:'smooth-or-featured_artifact_pred'}, inplace=True) #rename the headers of the dataframe
 
         scale_factor_dataframe['iauname'] = scale_factor_dataframe.iauname.str.replace('/share/nas/walml/repos/understanding_galaxies/scaled_{0}/'.format(scale_factor_multiplier[i]), '', regex=False)
         scale_factor_dataframe['iauname'] = scale_factor_dataframe.iauname.str.replace('.png', '', regex=False)
@@ -57,62 +66,60 @@ if __name__ == '__main__':
         
         merged_numpy_first_cut = first_mag_cut.to_numpy(dtype=str) #converts dataframe to numpy array for manipulation
         
-        numpy_merged_probs_first_cut = frf.prob_maker_filtered(merged_numpy_first_cut)
-        #numpy_merged_var_first_cut = frf.variance_from_beta(merged_numpy_first_cut)
+        numpy_merged_probs_first_cut = frf.prob_maker(merged_numpy_first_cut)
+        numpy_merged_var_first_cut = frf.variance_from_beta(merged_numpy_first_cut)
 
-        numpy_merged_probs_first_cut = np.hstack((numpy_merged_probs_first_cut, merged_numpy_first_cut[:, -2:]))
-        #numpy_merged_var_first_cut = np.hstack((numpy_merged_var_first_cut, merged_numpy_first_cut[:, -1:]))
+        numpy_merged_probs_first_cut = np.hstack((numpy_merged_probs_first_cut, merged_numpy_first_cut[:, -1:]))
+        numpy_merged_var_first_cut = np.hstack((numpy_merged_var_first_cut, merged_numpy_first_cut[:, -1:]))
 
         full_data_array_first_cut=np.vstack((full_data_array_first_cut, numpy_merged_probs_first_cut)) #stacks all data from current redshift to cumulative array
-        #full_data_array_first_cut_var=np.vstack((full_data_array_first_cut_var, numpy_merged_var_first_cut))
+        full_data_array_first_cut_var=np.vstack((full_data_array_first_cut_var, numpy_merged_var_first_cut))
         i+=1 
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:5, 0] 
+    test_sample_names = full_data_array_first_cut[1:2, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
-    #full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
+    full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
     test_sample = pd.DataFrame(columns=full_dataframe.columns)
 
-    for name in test_sample_names: #Removes the test sample data from the full data
+    for name in test_sample_names:
         cond = full_dataframe[0] == name
         rows = full_dataframe.loc[cond, :]
         test_sample = test_sample.append(rows ,ignore_index=True)
         full_dataframe.drop(rows.index, inplace=True)
-        #full_dataframe_var.drop(rows.index, inplace=True)
+        full_dataframe_var.drop(rows.index, inplace=True)
 
     print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
     for test_name in test_sample_names:
-
+    
         test_galaxy = test_sample[test_sample[0] == test_name]
-        gal_max_z = test_galaxy.loc[[test_galaxy[7].astype(float).idxmax()]] #line corrosponding to maximum value of z for test galaxy
-        gal_min_z = test_galaxy.loc[[test_galaxy[7].astype(float).idxmin()]]
-        test_z = gal_max_z[7].astype(float).to_numpy()[0] #starting point
-        test_p = gal_max_z[1].astype(float).to_numpy()[0] #starting point
-        test_preds_shape = gal_max_z[[4, 5, 6]].astype(float).to_numpy() #Our galaxy to predict on values
-        pred_z = gal_min_z[7].astype(float).to_numpy()[0] #where we want to predict
-        actual_p = gal_min_z[1].astype(float).to_numpy()[0] #the value of p given by the image to compare with prediction
-        actual_shape = gal_min_z[[4, 5, 6]].astype(float).to_numpy() #ZooBot predictions at new redshift 
-        test_mag = gal_max_z[8].astype(float).to_numpy()[0] #magnitude of test gal
+        gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
+        gal_min_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmin()]]
+        test_z = gal_max_z[4].astype(float).to_numpy()[0]
+        test_p = gal_max_z[1].astype(float).to_numpy()[0]
+        pred_z = gal_min_z[4].astype(float).to_numpy()[0]
+        actual_p = gal_min_z[1].astype(float).to_numpy()[0]
+        test_mag = gal_max_z[5].astype(float).to_numpy()[0]
 
         #Set values for smapling 
         upper_z = test_z + delta_z
         lower_z = test_z - delta_z
         upper_p = test_p + delta_p
-        lower_p = test_p - delta_p
+        lower_p =test_p - delta_p
 
-        immediate_sub_sample = full_dataframe[(full_dataframe[7].astype(float) < upper_z) & (full_dataframe[7].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
+        immediate_sub_sample = full_dataframe[(full_dataframe[4].astype(float) < upper_z) & (full_dataframe[4].astype(float) >= lower_z) & (full_dataframe[1].astype(float) >= lower_p) & (full_dataframe[1].astype(float) <= upper_p)]
         unique_names = pd.unique(immediate_sub_sample[0])
             
         sim_sub_set = pd.DataFrame()
-        #sim_sub_set_var = pd.DataFrame()
+        sim_sub_set_var = pd.DataFrame()
         for name in unique_names:
             sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
-            #sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
+            sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
         
-        
+        """  
         #Let's make some predictions
 
         prediction_list=[]
@@ -122,26 +129,24 @@ if __name__ == '__main__':
         for name in unique_names:
             galaxy_data = sim_sub_set[sim_sub_set[0] == name]
 
-            abs_diff_pred_z = abs(galaxy_data[7].astype(float) - pred_z)
-            min_pos_pred = abs_diff_pred_z.idxmin() #Finds the index for the smallest difference in redshift to point of prediction 
-
-            abs_diff_test_z = abs(galaxy_data[7].astype(float) - test_z)
-            min_pos_test = abs_diff_test_z.idxmin() #Finds the index for the smallest difference in redshift to test point
+            abs_diff_pred_z = abs(galaxy_data[4].astype(float) - pred_z)
+            min_pos_pred = abs_diff_pred_z.nsmallest(2).index[0] #nsmallest picks the n smallest values and puts them in df
             
+            abs_diff_test_z = abs(galaxy_data[4].astype(float) - test_z)
+            min_pos_test = abs_diff_test_z.nsmallest(2).index[0] #nsmallest picks the n smallest values and puts them in df
+
             estimate_predictions = galaxy_data.loc[[min_pos_pred]]
+
             closest_vals = galaxy_data.loc[[min_pos_test]] #Possible could encounter edge case issues
             
             gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
-            gaussian_z_variable = closest_vals[7].astype(float).to_numpy()[0]
-            gaussian_mag_variable = closest_vals[8].astype(float).to_numpy()[0]
-            weighting_shape_variables = closest_vals[[4, 5, 6]].astype(float).to_numpy()
+            gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
+            gaussian_mag_variable = closest_vals[5].astype(float).to_numpy()[0]
 
             proximity_weight = frf.gaussian_weightings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p/2, delta_z/2)
             mag_weight = frf.gaussian_weightings(gaussian_mag_variable, 0, test_mag, 0, delta_mag, 1)
-            shape_weight = frf.shape_weight(test_preds_shape, weighting_shape_variables)
 
-            weight = proximity_weight * mag_weight * shape_weight
-            #weight = 1
+            weight = proximity_weight * mag_weight
 
             #print('mag_weight is:', mag_weight, '\nprox_wieght is:', proximity_weight, '\nTotal Weight is:', weight)
 
@@ -163,39 +168,46 @@ if __name__ == '__main__':
         chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2, 2)
         chi_squared_list.append(chi_squared)
 
+        """
+        #Initiate and name the figure
         plt.figure(figsize=(10,6))
         plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
         
-        """
-        plt.subplot(121)
-        for name in unique_names:
-            data_to_plot = sim_sub_set[sim_sub_set[0] == name]
-            x_data = np.asarray(data_to_plot[4]).astype(float)
-            y_data = np.asarray(data_to_plot[1]).astype(float)
-            
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-        plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.3f}\nunweighted std = {1:.3f}'.format(mean_prediction, mean_std)) #plotting raw average
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
-        plt.ylim([0, 1])
-        plt.legend()
-        """
- 
+        #Define lists for the regression data to be appended to
+        regression_x_data = np.zeros((0, 1))
+        regression_y_data = np.zeros((0, 1))
+
+        #Open the subplot
         plt.subplot(111)
         for name in unique_names:
+            #Find the x and y data for subset galaxy
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
-            #var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
-            x_data = np.asarray(data_to_plot[7]).astype(float)
+            var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
+            x_data = np.asarray(data_to_plot[4]).astype(float)
             y_data = np.asarray(data_to_plot[1]).astype(float)
-            #y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
+            y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
+            #plot individual galaxies
+            plt.errorbar(x_data, y_data, marker ='x', alpha=0.4)
+            #append all galaxies in sub smaple to single list
+            regression_x_data = np.append(regression_x_data, x_data)
+            regression_y_data = np.append(regression_y_data, y_data)
+                #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
             
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-            #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
+        # Instantiate a Gaussian Process model for Regression
+        kernel = 1 * Matern(length_scale=1, length_scale_bounds=(1e-5, 1e7), nu=0.2) #RBF(length_scale=10, length_scale_bounds=(1e-5, 1e5)) 
+        gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=15)
+        
+        # Fit to data using Maximum Likelihood Estimation of the parameters
+        gp.fit(np.atleast_2d(regression_x_data).T, regression_y_data)
 
-        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
-        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
+        # Mesh the input space for evaluations of the real function, the prediction and its MSE
+        x = np.atleast_2d(np.linspace(0, 0.25, 100)).T     
+
+        # Make the prediction on the meshed x-axis (ask for MSE as well)
+        y_pred, sigma = gp.predict(x, return_std=True)
+
+        #Plot the data points and the data fit
+        plt.plot(x, y_pred, "b-", alpha=0.3, label='Prediction')
 
         plt.xlabel('Redshift')
         plt.ylabel('Prediction of Smoothness Liklihood')
@@ -203,13 +215,19 @@ if __name__ == '__main__':
         plt.ylim([0, 1])
         plt.legend()
 
-        plt.savefig('prediction_for_{0}_with_shapeweight.png'.format(test_name), dpi=200)
+        plt.savefig('test_full_gpr_fit_matern.png', dpi=200)
         plt.close()
-   
-    print('Predictions made, calculating Chi-Squared')
-    total_chi_squared=np.sum(chi_squared_list)
-    reduced_chi_squared = total_chi_squared/len(test_sample_names)
-    print('Total summed chi-squared: {0:.3f}\nReduced Chi-squared is: {1:.3f}'.format(total_chi_squared, reduced_chi_squared))
-
     
+    print('Initial kernel vals:', kernel)
+    print('Final kernel vals:', gp.kernel_)
+    print('the log marginal likelihood:', gp.log_marginal_likelihood(gp.kernel_.theta))
     print('End')
+    
+    """ Scaling code - dont think to useful here?
+    from sklearn import preprocessing
+    #Scale the data to make easier to fit - https://scikit-learn.org/stable/modules/preprocessing.html
+    scaler = preprocessing.StandardScaler().fit(np.atleast_2d(x_data).T, y_data)
+    
+    C in GPR
+    C(0.5, (1e-5, 1e5))
+    """

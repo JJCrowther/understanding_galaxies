@@ -210,7 +210,7 @@ if __name__ == '__main__':
         plt.ylim([0, 1])
         plt.legend()
 
-        plt.savefig('prediction_for_{0}_featured.png'.format(test_name), dpi=200)
+        plt.savefig('prediction_for_{0}_featured_gradcorr.png'.format(test_name), dpi=200)
         plt.close()
         
     print('Predictions made, calculating Chi-Squared')

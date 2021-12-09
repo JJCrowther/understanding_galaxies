@@ -84,9 +84,9 @@ if __name__ == '__main__':
             full_dataframe_var.drop(rows.index, inplace=True)
 
         #If we want to operate over multiple galaxies, start a for loop here
-        for name in test_sample_names:
+        for test_name in test_sample_names:
 
-            test_galaxy = test_sample[test_sample[0] == name]
+            test_galaxy = test_sample[test_sample[0] == test_name]
             gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
             gal_min_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmin()]]
             test_z = gal_max_z[4].astype(float).to_numpy()[0]
@@ -158,7 +158,7 @@ if __name__ == '__main__':
             chi_squared_list.append(chi_squared)
 
             #plt.figure(figsize=(10,6))
-            #plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), name), fontsize=18)
+            #plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
             
             """
             plt.subplot(121)
@@ -197,7 +197,7 @@ if __name__ == '__main__':
             plt.ylim([0, 1])
             plt.legend()
 
-            plt.savefig('prediction_for_{0}.png'.format(name), dpi=200)
+            plt.savefig('prediction_for_{0}.png'.format(test_name), dpi=200)
             plt.close()
             """
         total_chi_squared=np.sum(chi_squared_list)
