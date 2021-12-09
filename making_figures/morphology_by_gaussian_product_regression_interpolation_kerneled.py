@@ -169,15 +169,14 @@ if __name__ == '__main__':
         chi_squared_list.append(chi_squared)
 
         """
-
         #Initiate and name the figure
         plt.figure(figsize=(10,6))
         plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
         
-        #Define lists for the regression data to be appended to
-        regression_x_data = np.zeros((0, 1))
-        regression_y_data = np.zeros((0, 1))
-
+        # Instantiate a Gaussian Process model for Regression
+        kernel = 1 * RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5)) #Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0), nu=1.5) 
+        gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=20)
+        
         #Open the subplot
         plt.subplot(111)
         for name in unique_names:
@@ -187,55 +186,31 @@ if __name__ == '__main__':
             x_data = np.asarray(data_to_plot[4]).astype(float)
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
-            #plot individual galaxies
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.4)
-            #append all galaxies in sub smaple to single list
-            regression_x_data = np.append(regression_x_data, x_data)
-            regression_y_data = np.append(regression_y_data, y_data)
             
-            #sorted_regression_x_data=regression_x_data[regression_x_data.argsort()]
-            #sorted_regression_y_data=regression_y_data[regression_x_data.argsort()]
                 #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
             
-        # Instantiate a Gaussian Process model for Regression
-        kernel = 1 * Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01) #RBF(length_scale=10, length_scale_bounds=(1e-5, 1e5)) 
-        gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=20) # alpha=1 Smooths the line but drops it by some amount proportional to alpha
-        
-        # Fit to data using Maximum Likelihood Estimation of the parameters
-        gp.fit(np.atleast_2d(regression_x_data).T, regression_y_data)
+            # Fit to data using Maximum Likelihood Estimation of the parameters
+            gp.fit(np.atleast_2d(x_data).T, y_data)
 
-        # Mesh the input space for evaluations of the real function, the prediction and its MSE
-        x = np.atleast_2d(np.linspace(0, 0.25, 500)).T     
+            # Mesh the input space for evaluations of the real function, the prediction and its MSE
+            x = np.atleast_2d(np.linspace(0, 0.25, 100)).T     
 
-        # Make the prediction on the meshed x-axis (ask for MSE as well)
-        y_pred, sigma = gp.predict(x, return_std=True)
+            # Make the prediction on the meshed x-axis (ask for MSE as well)
+            y_pred, sigma = gp.predict(x, return_std=True)
 
-        #Plot the data points and the data fit
-        plt.errorbar(x, y_pred, marker='', alpha=0.6, label='Prediction\noriginal kernel: {0}\nFinal kernel: {1}\nLML: {2:.3f}'.format(kernel, gp.kernel_, gp.log_marginal_likelihood(gp.kernel_.theta)))
-        
-        interval = (0.25-0)/500 #This is defined by linspace(0, 0.25, 500) 
-        target_index = pred_z/interval
-        prediction = y_pred[target_index]
-        
-        plt.errorbar(pred_z, prediction, marker='o', label='GPR prediction')
-        
+            #Plot the data points and the data fit
+            plt.errorbar(x_data, y_data, marker ='x', alpha=0.4)
+            plt.plot(x, y_pred, "b-", alpha=0.3)
+
         plt.xlabel('Redshift')
         plt.ylabel('Prediction of Smoothness Liklihood')
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
         plt.legend()
 
-        plt.savefig('gpr_fit_matern_{0}_test_full.png'.format(test_name), dpi=200)
+        plt.savefig('test_RBF.png', dpi=200)
         plt.close()
-
-        print('Initial kernel vals:', kernel)
-        print('Final kernel vals:', gp.kernel_)
-        print('the log marginal likelihood:', gp.log_marginal_likelihood(gp.kernel_.theta))
     
-    interval = (0.25-0)/500 #This is defined by linspace(0, 0.25, 500) 
-    target_index = target_index/interval
-    prediction = y_pred[np.round(target_index).astype(int)]
-                        
     print('End')
     
     """ Scaling code - dont think to useful here?
@@ -246,3 +221,8 @@ if __name__ == '__main__':
     C in GPR
     C(0.5, (1e-5, 1e5))
     """
+    
+    
+    
+    
+    
