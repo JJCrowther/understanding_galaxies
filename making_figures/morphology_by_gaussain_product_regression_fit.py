@@ -215,7 +215,7 @@ if __name__ == '__main__':
         
         interval = (0.25-0)/500 #This is defined by linspace(0, 0.25, 500) 
         target_index = pred_z/interval
-        prediction = y_pred[target_index]
+        prediction = y_pred[np.round(target_index).astype(int)]
         
         plt.errorbar(pred_z, prediction, marker='o', label='GPR prediction')
         
@@ -232,9 +232,7 @@ if __name__ == '__main__':
         print('Final kernel vals:', gp.kernel_)
         print('the log marginal likelihood:', gp.log_marginal_likelihood(gp.kernel_.theta))
     
-    interval = (0.25-0)/500 #This is defined by linspace(0, 0.25, 500) 
-    target_index = target_index/interval
-    prediction = y_pred[np.round(target_index).astype(int)]
+    
                         
     print('End')
     
