@@ -145,7 +145,14 @@ for name in test_sample_names:
     kern_sum_val = np.zeros(0)
     area_kern_sum_val = np.zeros(0)
     
+
+    """
     
+    kern_sum_val = np.zeros(0)
+    area_kern_sum_val = np.zeros(0)
+    x_val = prediction_list
+    sd = np.sqrt(sd_list)
+    weights = weight_list
     x_range = np.arange (0,1,0.001)
     for x in x_range:
         
