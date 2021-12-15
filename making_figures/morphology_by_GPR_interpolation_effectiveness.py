@@ -50,6 +50,14 @@ if __name__ == '__main__':
     full_data_array_first_cut=np.zeros((0, 6))
     full_data_array_first_cut_var=np.zeros((0, 6))
     chi_squared_list=[]
+    
+    good_fit_interp = 0
+    bad_fit_interp = 0
+    ok_fit_interp = 0
+
+    good_fit_kernel = 0
+    bad_fit_kernel = 0
+    ok_fit_kernel = 0
 
         # The data
 
@@ -89,7 +97,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:1, 0] 
+    test_sample_names = full_data_array_first_cut[0:100, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -104,6 +112,7 @@ if __name__ == '__main__':
 
     print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
+    test_gal_number=0
     for test_name in test_sample_names:
         #Assign empty variables for each loop
         prediction_list = []
@@ -192,12 +201,6 @@ if __name__ == '__main__':
         chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2, 2)
         chi_squared_list.append(chi_squared)
 
-        #Initiate and name the figure
-        plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
-        
-        #Open the subplot
-        plt.subplot(121)
         for name in unique_names:
             # Instantiate a Gaussian Process model for Regression
             kernel = 1 * Matern(length_scale=1.0, length_scale_bounds=(1e-7, 1e7), nu=2) #RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5))
@@ -227,17 +230,12 @@ if __name__ == '__main__':
             prediction_list_gp.append(prediction_gp)
             pred_sigma_list.append(pred_sigma)
 
-            #Plot the data points and the data fit
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.4)
-            plt.plot(x[:], y_pred[:], "b-", alpha=0.3) #plot for smaller x range (drop the first 0.1 maybe?) - looks weird
-
         x_val = prediction_list_gp
         sd = np.sqrt(pred_sigma_list)
         weights = weight_list
 
         kern_sum_val = np.zeros(0)
         area_kern_sum_val = np.zeros(0)
-        
         
         x_range = np.arange (0,1,0.001)
         for x in x_range:
@@ -356,63 +354,41 @@ if __name__ == '__main__':
 
         prediction_average = np.mean(prediction_list_gp)
         sigma_average = np.mean(np.sqrt(pred_sigma_list))
-        plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}\nTarget Redshift: {1:.3f}'.format(actual_p, pred_z))
-        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
-        plt.ylim([0, 1])
-        plt.legend()
-    
-        if (len(peaks) == 1):  
-            plt.subplot(122)
 
-            plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
-            plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
-            plt.axhline(new_mean, label='Mean= {0:.3f}'.format(new_mean), color='red')
-            plt.ylim([0, 1])
-            plt.xlim(left=0)
-
-            plt.fill_betweenx(x_range,  norm_kern_sum, where=(sd > abs((new_mean-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation = {0:.3f}".format(sd))
-            plt.legend(fontsize=7, loc=1)
-            plt.gca().invert_xaxis()
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}.png'.format(test_name))
-            plt.close()
+        #Check which catagory the fit falls into
         
+        if len(peaks)>1:
+            closest_peaks_loc = np.argmin(abs((peaks/1000) - actual_p))
+            closest_peak_sd = sds[closest_peaks_loc]
+            closest_peak_val = peaks[closest_peaks_loc]/1000
         else:
-            plt.subplot(122)
+            closest_peak_sd = sd
+            closest_peak_val = new_mean
 
-            plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
-            plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
-            plt.ylim([0, 1])
-            plt.xlim(left=0)
+        prediction_similarity_interpolation = abs(actual_p - prediction_average)/sigma_average
+        prediction_similarity_peaks = abs(actual_p - closest_peak_val)/closest_peak_sd
 
-            for i in range(len(peaks)):
-                plt.axhline(peaks[i]/1000, label='Peak_{1} = {0:.3f}, with peak ratio = {2:.2f}'.format(df.iloc[i]['mean']/1000, i,df.iloc[i]['ratio'] ), color='red')
-                plt.fill_betweenx(x_range, norm_kern_sum, where=(df.iloc[i]['sd'] > abs(((df.iloc[i]['mean']/1000)-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation_{1} = {0:.3f}".format(df.iloc[i]['sd'], i))
-            plt.gca().invert_xaxis()
-            plt.legend(fontsize=7, loc=1)
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}.png'.format(test_name))
-            plt.close()
-
-    plt.close('all')
-    print('End')
+        if prediction_similarity_interpolation < 1:
+            good_fit_interp+=1
+        elif prediction_similarity_interpolation < 2:
+            ok_fit_interp+=1
+        else:
+            bad_fit_interp+=1
+        
+        if prediction_similarity_peaks < 1:
+            good_fit_kernel+=1
+        elif prediction_similarity_peaks < 2:
+            ok_fit_kernel+=1
+        else:
+            bad_fit_kernel+=1
+            
+        test_gal_number+=1
+        print('gal number {0} done'.format(test_gal_number))
+        
+    print('Good=1sd, OK=2sd, Bad=2+sd\n')
+    print('For {0} test galaxies:'.format(len(test_sample_names)))
+    print('For Interpolation:\nGood:{0}\nOK:{1}\nBad:{2}'.format(good_fit_interp, ok_fit_interp, bad_fit_interp))
+    print('For Kerneling:\nGood:{0}\nOK:{1}\nBad:{2}'.format(good_fit_kernel, ok_fit_kernel, bad_fit_kernel))
+    print('\nEnd')
     
-    """ Scaling code - dont think to useful here?
-    from sklearn import preprocessing
-    #Scale the data to make easier to fit - https://scikit-learn.org/stable/modules/preprocessing.html
-    scaler = preprocessing.StandardScaler().fit(np.atleast_2d(x_data).T, y_data)
-    
-    C in GPR
-    C(0.5, (1e-5, 1e5))
-    """
-    
-    
-    
-    
-    
+  

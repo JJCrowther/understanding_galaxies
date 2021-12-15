@@ -10,8 +10,8 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.2 #sets width of sample box - Default optimised = 0.008
-    delta_p = 0.6 #sets height of smaple box - Default optimised = 0.016
+    delta_z = 0.008 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.016 #sets height of smaple box - Default optimised = 0.016
     delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters

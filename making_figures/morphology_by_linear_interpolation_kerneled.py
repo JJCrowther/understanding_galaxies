@@ -1,22 +1,12 @@
-#import core data handling and plotting libraries
 from numpy.core.numeric import full
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import find_peaks
-
-#import the rectangle plot library
 from matplotlib.patches import Rectangle
+from scipy.signal import find_peaks
 
 #frf for file opening and plotting functions
 import functions_for_redshifting_figures as frf
-
-#import the GPR libraries
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
-from sklearn.gaussian_process.kernels import Matern
-
-print('\nStart')
 
 def kernal_create (x, x_val, sd, weights):
     kern_sum = 0
@@ -28,9 +18,11 @@ def kernal_create (x, x_val, sd, weights):
         kern_sum += kern_sum_mid
     return kern_sum
 
+print('\nStart')
+
 if __name__ == '__main__':
-    delta_z = 0.01 #sets width of sample box - Default optimised = 0.008
-    delta_p = 0.02 #sets height of smaple box - Default optimised = 0.016
+    delta_z = 0.008 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.016 #sets height of smaple box - Default optimised = 0.016
     delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters
@@ -49,7 +41,6 @@ if __name__ == '__main__':
     scale_factor_data={}
     full_data_array_first_cut=np.zeros((0, 6))
     full_data_array_first_cut_var=np.zeros((0, 6))
-    chi_squared_list=[]
 
         # The data
 
@@ -89,7 +80,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:1, 0] 
+    test_sample_names = full_data_array_first_cut[41:50, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -105,12 +96,6 @@ if __name__ == '__main__':
     print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
     for test_name in test_sample_names:
-        #Assign empty variables for each loop
-        prediction_list = []
-        prediction_list_gp = []
-        pred_sigma_list = []
-        weight_list = []
-        sd_list = []
     
         test_galaxy = test_sample[test_sample[0] == test_name]
         gal_max_z = test_galaxy.loc[[test_galaxy[4].astype(float).idxmax()]]
@@ -135,6 +120,13 @@ if __name__ == '__main__':
         for name in unique_names:
             sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
             sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
+        
+        
+        #Let's make some predictions
+
+        prediction_list=[]
+        weight_list = []
+        sd_list=[]
     
         for name in unique_names:
             galaxy_data = sim_sub_set[sim_sub_set[0] == name]
@@ -188,56 +180,40 @@ if __name__ == '__main__':
         weighted_std_denominator = np.sum(np.array(weight_list))
         weighted_std = np.sqrt(weighted_std_numerator/weighted_std_denominator)
 
-        #finding a chi squared value
-        chi_squared = frf.chi_squared(weighted_mean, actual_p, (weighted_std)**2, 2)
-        chi_squared_list.append(chi_squared)
-
-        #Initiate and name the figure
         plt.figure(figsize=(10,6))
         plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
-        
-        #Open the subplot
+
         plt.subplot(121)
         for name in unique_names:
-            # Instantiate a Gaussian Process model for Regression
-            kernel = 1 * Matern(length_scale=1.0, length_scale_bounds=(1e-7, 1e7), nu=2) #RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5))
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=15)
-
-            #Find the x and y data for subset galaxy
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
             var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
             x_data = np.asarray(data_to_plot[4]).astype(float)
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
             
-                #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
-            
-            # Fit to data using Maximum Likelihood Estimation of the parameters
-            gp.fit(np.atleast_2d(x_data).T, y_data)
+            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
 
-            # Mesh the input space for evaluations of the real function, the prediction and its MSE
-            x = np.atleast_2d(np.linspace(0, 0.25, 100)).T     
+        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', color = 'red', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p)) #plotting average weighted by 2D gaussian
+        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
+        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
+        plt.xlabel('Redshift')
+        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlim([0, 0.25])
+        plt.ylim([0, 1])
+        plt.legend()
 
-            # Make the prediction on the meshed x-axis (ask for MSE as well)
-            y_pred, sigma = gp.predict(x, return_std=True)
-
-            target_index = pred_z/((0.25-0)/100)
-            prediction_gp = y_pred[np.round(target_index).astype(int)]
-            pred_sigma = sigma[np.round(target_index).astype(int)]
-            prediction_list_gp.append(prediction_gp)
-            pred_sigma_list.append(pred_sigma)
-
-            #Plot the data points and the data fit
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.4)
-            plt.plot(x[:], y_pred[:], "b-", alpha=0.3) #plot for smaller x range (drop the first 0.1 maybe?) - looks weird
-
-        x_val = prediction_list_gp
-        sd = np.sqrt(pred_sigma_list)
+        """
+        Copy from here
+        
+        Change x_val, sd and weights
+        """
+        
+        x_val = prediction_list
+        sd = np.sqrt(sd_list)
         weights = weight_list
 
         kern_sum_val = np.zeros(0)
         area_kern_sum_val = np.zeros(0)
-        
         
         x_range = np.arange (0,1,0.001)
         for x in x_range:
@@ -353,18 +329,8 @@ if __name__ == '__main__':
                     
                 sds = np.append(sds, sd)
             df["sd"] = sds
+        
 
-        prediction_average = np.mean(prediction_list_gp)
-        sigma_average = np.mean(np.sqrt(pred_sigma_list))
-        plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}\nTarget Redshift: {1:.3f}'.format(actual_p, pred_z))
-        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
-        plt.ylim([0, 1])
-        plt.legend()
-    
         if (len(peaks) == 1):  
             plt.subplot(122)
 
@@ -379,7 +345,7 @@ if __name__ == '__main__':
             plt.fill_betweenx(x_range,  norm_kern_sum, where=(sd > abs((new_mean-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation = {0:.3f}".format(sd))
             plt.legend(fontsize=7, loc=1)
             plt.gca().invert_xaxis()
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}.png'.format(test_name))
+            plt.savefig('grad_corr_{0}_with_kernels.png'.format(test_name))
             plt.close()
         
         else:
@@ -397,22 +363,8 @@ if __name__ == '__main__':
                 plt.fill_betweenx(x_range, norm_kern_sum, where=(df.iloc[i]['sd'] > abs(((df.iloc[i]['mean']/1000)-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation_{1} = {0:.3f}".format(df.iloc[i]['sd'], i))
             plt.gca().invert_xaxis()
             plt.legend(fontsize=7, loc=1)
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}.png'.format(test_name))
+            plt.savefig('grad_corr_{0}_with_kernels.png'.format(test_name))
             plt.close()
 
     plt.close('all')
     print('End')
-    
-    """ Scaling code - dont think to useful here?
-    from sklearn import preprocessing
-    #Scale the data to make easier to fit - https://scikit-learn.org/stable/modules/preprocessing.html
-    scaler = preprocessing.StandardScaler().fit(np.atleast_2d(x_data).T, y_data)
-    
-    C in GPR
-    C(0.5, (1e-5, 1e5))
-    """
-    
-    
-    
-    
-    

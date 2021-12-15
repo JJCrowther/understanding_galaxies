@@ -14,6 +14,7 @@ import functions_for_redshifting_figures as frf
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.gaussian_process.kernels import Matern
+from sklearn.gaussian_process.kernels import RationalQuadratic
 
 print('\nStart')
 
@@ -198,34 +199,37 @@ if __name__ == '__main__':
                 #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
             
         # Instantiate a Gaussian Process model for Regression
-        kernel = 1 * Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01) #RBF(length_scale=10, length_scale_bounds=(1e-5, 1e5)) 
+        kernel = 1 * Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01) #Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01), RBF(length_scale=10, length_scale_bounds=(1e-5, 1e5)), RationalQuadratic(length_scale=1.0, alpha=0.1, alpha_bounds=(1e-5, 1e15))
         gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=20) # alpha=1 Smooths the line but drops it by some amount proportional to alpha
         
         # Fit to data using Maximum Likelihood Estimation of the parameters
         gp.fit(np.atleast_2d(regression_x_data).T, regression_y_data)
 
         # Mesh the input space for evaluations of the real function, the prediction and its MSE
-        x = np.atleast_2d(np.linspace(0, 0.25, 500)).T     
+        x = np.atleast_2d(np.linspace(0, 0.25, 100)).T     
 
         # Make the prediction on the meshed x-axis (ask for MSE as well)
         y_pred, sigma = gp.predict(x, return_std=True)
 
         #Plot the data points and the data fit
-        plt.errorbar(x, y_pred, marker='', alpha=0.6, label='Prediction\noriginal kernel: {0}\nFinal kernel: {1}\nLML: {2:.3f}'.format(kernel, gp.kernel_, gp.log_marginal_likelihood(gp.kernel_.theta)))
+        plt.errorbar(x, y_pred, marker='', alpha=0.6, label = 'GPR fit') #label='Prediction\noriginal kernel: {0}\nFinal kernel: {1}\nLML: {2:.3f}'.format(kernel, gp.kernel_, gp.log_marginal_likelihood(gp.kernel_.theta)))
         
-        interval = (0.25-0)/500 #This is defined by linspace(0, 0.25, 500) 
+        interval = (0.25-0)/100 #This is defined by linspace(0, 0.25, 100) 
         target_index = pred_z/interval
         prediction = y_pred[np.round(target_index).astype(int)]
+        pred_sigma = sigma[np.round(target_index).astype(int)]
         
-        plt.errorbar(pred_z, prediction, marker='o', label='GPR prediction')
-        
+        plt.errorbar(pred_z, prediction, pred_sigma, marker='v', color='red', label='GPR prediction: {0:.3f}\nStandard deviation: {1:.3f}'.format(prediction, pred_sigma))
+        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}'.format(actual_p))
+        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift: {0:.3f}'.format(test_z))
+
         plt.xlabel('Redshift')
         plt.ylabel('Prediction of Smoothness Liklihood')
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
         plt.legend()
 
-        plt.savefig('gpr_fit_matern_{0}_test_full.png'.format(test_name), dpi=200)
+        plt.savefig('gpr_fit_RBF_{0}_test_full.png'.format(test_name), dpi=200)
         plt.close()
 
         print('Initial kernel vals:', kernel)
