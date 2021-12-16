@@ -18,16 +18,6 @@ from sklearn.gaussian_process.kernels import Matern
 
 print('\nStart')
 
-def kernal_create (x, x_val, sd, weights):
-    kern_sum = 0
-    for v in range(len(x_val)):
-        exp_num = (x-x_val[v])**2
-        exp_don = 2 * (sd[v])**2
-        normalising_func = 1/(sd[v] * np.sqrt(2*np.pi))
-        kern_sum_mid = weights[v] * normalising_func * np.exp(-exp_num/exp_don)
-        kern_sum += kern_sum_mid
-    return kern_sum
-
 if __name__ == '__main__':
     delta_z = 0.01 #sets width of sample box - Default optimised = 0.008
     delta_p = 0.02 #sets height of smaple box - Default optimised = 0.016
@@ -89,7 +79,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[40:43, 0] 
+    test_sample_names = full_data_array_first_cut[1:2, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -207,12 +197,12 @@ if __name__ == '__main__':
         norm_alphas_per_gal = alpha_per_gal * norm_factor
 
         #Open the subplot
-        plt.subplot(121)
+        plt.subplot(111)
         weight_index=0
         for name in unique_names:
             # Instantiate a Gaussian Process model for Regression
-            kernel = 1 * Matern(length_scale=0.01, length_scale_bounds=(1e-7, 1e7), nu=1.5) #RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5))
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+            kernel = 1 * RBF(length_scale=0.01, length_scale_bounds=(1e-7, 1e7)) #Matern(length_scale=0.01, length_scale_bounds=(1e-7, 1e7), nu=1.5) #RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5))
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=12)
 
             #Find the x and y data for subset galaxy
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
@@ -243,129 +233,6 @@ if __name__ == '__main__':
             plt.plot(x[:], y_pred[:], "b-", alpha=norm_alphas_per_gal[weight_index]) #plot for smaller x range (drop the first 0.1 maybe?) - looks weird
             weight_index+=1
 
-        x_val = prediction_list_gp
-        sd = np.sqrt(pred_sigma_list)
-        weights = weight_list
-
-        kern_sum_val = np.zeros(0)
-        area_kern_sum_val = np.zeros(0)
-        
-        
-        x_range = np.arange (0,1,0.001)
-        for x in x_range:
-            
-            a = kernal_create(x, x_val, sd, weights)
-            kern_sum_val = np.append(kern_sum_val, a)
-            area_kern_sum_val = np.append(area_kern_sum_val, a * 0.001)
-
-        total = np.vstack((x_range, kern_sum_val)).T
-
-        above_array = np.zeros(0)
-        below_array = np.zeros(0)
-        
-        mean_sum_array = np.zeros(0)
-        var_sum_array = np.zeros(0)
-        
-        max_v = np.argmax(kern_sum_val)
-        max_prob = total[max_v][0]
-        max_val = np.max(kern_sum_val)
-        half_max_val = max_val/2
-        half_array = abs(kern_sum_val-half_max_val)
-    
-        for i in range(len(half_array)):
-            
-            mean_sum_val = x_range[i] * (kern_sum_val[i]/np.sum(kern_sum_val))
-            mean_sum_array = np.append(mean_sum_array, mean_sum_val)
-            var_sum_val = (x_range[i]**2) * (kern_sum_val[i]/np.sum(kern_sum_val))
-            var_sum_array = np.append(var_sum_array, var_sum_val)
-            
-        new_mean = np.sum(mean_sum_array)
-        variance = np.sum(var_sum_array) - new_mean**2
-        sd = np.sqrt(variance)
-        
-        area_norm = np.sum(area_kern_sum_val)
-        norm_kern_sum = kern_sum_val/area_norm
-        
-        peaks, _ = find_peaks(norm_kern_sum, height=0)
-        
-        if (len(peaks)> 1):
-            peak_data = {"peak" : [], "ratio" : [], "kern" : [], "loc" : [], "mean" : []};
-            minimums = np.zeros(0)
-            for i in range(len(peaks)):
-                peak_data["peak"].append(i)
-                peak_data["mean"].append(peaks[i])
-                peak_height_sum = 0
-                for j in range(len(peaks)):
-                    peak_height_sum += norm_kern_sum[peaks[j]]
-                ratio = norm_kern_sum[peaks[i]]/peak_height_sum
-                peak_data["ratio"].append(ratio)
-                if (i < (len(peaks)-1)):
-                    values = []
-                    for l in range(len(x_range)):
-                        if (l>=peaks[i] and l<peaks[i+1]):
-                            values.append(norm_kern_sum[l])
-                    values = np.asarray(values)
-                    min_val_id = np.where(values == np.amin(values)) + peaks[i]
-                    min_val_id = float(min_val_id[0])
-                    minimums = np.asarray(minimums)
-                    minimums = np.append(minimums, min_val_id)
-                    
-            for i in range(len(peaks)):
-                kern_data = []
-                loc_data = []
-                for m in range(len(x_range)):
-                    if (i == 0):
-                        if (m<=minimums[i]):
-                            kern_data.append(norm_kern_sum[m])
-                            loc_data.append(x_range[m])
-                    if (i == (len(peaks)-1)):
-                        if (m>minimums[i-1]):
-                            kern_data.append(norm_kern_sum[m])
-                            loc_data.append(x_range[m])
-                    else:
-                        if ((m>minimums[i-1]) and (m<=minimums[i])):
-                            kern_data.append(norm_kern_sum[m])
-                            loc_data.append(x_range[m])
-                kern_data = np.asarray(kern_data)
-                loc_data = np.asarray(loc_data)
-                peak_data["kern"].append(kern_data)
-                peak_data["loc"].append(loc_data)
-            df = pd.DataFrame(peak_data)
-            sds = np.zeros(0)
-            for i in range(len(peaks)):
-                data = df.iloc[i]['kern']
-                locs = df.iloc[i]['loc']
-                mean = df.iloc[i]['mean']
-                half_values = np.zeros(0)
-                close_to_half_data = abs(data-peaks[i]/2)
-                below_mean = False
-                below_mean_data = np.zeros(0)
-                above_mean = False
-                above_mean_data = np.zeros(0)
-                for m in range(len(data)):
-                    if m> np.argmax(data):
-                        above_mean_data = np.append(above_mean_data, data[m])
-                    else:
-                        below_mean_data = np.append(below_mean_data, data[m])
-                if (np.min(above_mean_data) < (norm_kern_sum[mean]/2)):
-                    close_to_half_data = abs(above_mean_data-(norm_kern_sum[mean]/2))
-                    closest = np.argmin(close_to_half_data) + mean
-                    half_values = np.append(half_values, closest)
-                if (np.min(below_mean_data) < norm_kern_sum[mean]/2):
-                    close_to_half_data = abs(below_mean_data-(norm_kern_sum[mean]/2))
-                    closest = mean - np.argmin(close_to_half_data)
-                    half_values = np.append(half_values, closest) 
-                
-                if len(half_values) == 2:
-                    FWHM = abs(half_values[1]-half_values[0])/1000
-                    sd = FWHM/(2*np.sqrt(2*np.log(2)))
-                if len(half_values) == 1:
-                    diff = abs(half_values[0]-mean)/1000
-                    sd = diff/(np.sqrt(2*np.log(2)))
-                    
-                sds = np.append(sds, sd)
-            df["sd"] = sds
-
         prediction_average = np.mean(prediction_list_gp)
         sigma_average = np.mean(np.sqrt(pred_sigma_list))
         plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
@@ -376,55 +243,10 @@ if __name__ == '__main__':
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
         plt.legend()
-    
-        if (len(peaks) == 1):  
-            plt.subplot(122)
-
-            plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
-            plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
-            plt.axhline(new_mean, label='Mean= {0:.3f}'.format(new_mean), color='red')
-            plt.ylim([0, 1])
-            plt.xlim(left=0)
-
-            plt.fill_betweenx(x_range,  norm_kern_sum, where=(sd > abs((new_mean-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation = {0:.3f}".format(sd))
-            plt.legend(fontsize=7, loc=1)
-            plt.gca().invert_xaxis()
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha.png'.format(test_name))
-            plt.close()
-        
-        else:
-            plt.subplot(122)
-
-            plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
-            plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
-            plt.ylim([0, 1])
-            plt.xlim(left=0)
-
-            for i in range(len(peaks)):
-                plt.axhline(peaks[i]/1000, label='Peak_{1} = {0:.3f}, with peak ratio = {2:.2f}'.format(df.iloc[i]['mean']/1000, i,df.iloc[i]['ratio'] ), color='red')
-                plt.fill_betweenx(x_range, norm_kern_sum, where=(df.iloc[i]['sd'] > abs(((df.iloc[i]['mean']/1000)-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation_{1} = {0:.3f}".format(df.iloc[i]['sd'], i))
-            plt.gca().invert_xaxis()
-            plt.legend(fontsize=7, loc=1)
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha.png'.format(test_name))
-            plt.close()
+        plt.savefig('gp_interpolation_RBF_{0}_weightalpha.png'.format(test_name))
 
     plt.close('all')
     print('End')
-    
-    """ Scaling code - dont think to useful here?
-    from sklearn import preprocessing
-    #Scale the data to make easier to fit - https://scikit-learn.org/stable/modules/preprocessing.html
-    scaler = preprocessing.StandardScaler().fit(np.atleast_2d(x_data).T, y_data)
-    
-    C in GPR
-    C(0.5, (1e-5, 1e5))
-    """
-    
-    
     
     
     

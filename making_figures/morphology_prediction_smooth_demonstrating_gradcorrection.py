@@ -10,8 +10,8 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.05 #sets width of sample box - Default optimised = 0.008
-    delta_p = 0.2 #sets height of smaple box - Default optimised = 0.016
+    delta_z = 0.008 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.016 #sets height of smaple box - Default optimised = 0.016
     delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters
@@ -31,6 +31,7 @@ if __name__ == '__main__':
     full_data_array_first_cut=np.zeros((0, 6))
     full_data_array_first_cut_var=np.zeros((0, 6))
     chi_squared_list=[]
+    
 
         # The data
 
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[0:1, 0] 
+    test_sample_names = full_data_array_first_cut[45:50, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -116,7 +117,8 @@ if __name__ == '__main__':
 
         prediction_list=[]
         weight_list = []
-
+        grad_demo_list_z = []
+        grad_demo_list_p = []
     
         for name in unique_names:
             galaxy_data = sim_sub_set[sim_sub_set[0] == name]
@@ -152,7 +154,8 @@ if __name__ == '__main__':
             weight = proximity_weight * mag_weight
 
             #print('mag_weight is:', mag_weight, '\nprox_wieght is:', proximity_weight, '\nTotal Weight is:', weight)
-
+            grad_demo_list_p.append(estimate_predictions[1].astype(float).to_numpy()[0])
+            grad_demo_list_z.append(estimate_predictions[4].astype(float).to_numpy()[0])
             prediction_list.append(grad_corrected_prediction)
             weight_list.append(weight)
         
@@ -174,22 +177,6 @@ if __name__ == '__main__':
         plt.figure(figsize=(10,6))
         plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
         
-        """
-        plt.subplot(121)
-        for name in unique_names:
-            data_to_plot = sim_sub_set[sim_sub_set[0] == name]
-            x_data = np.asarray(data_to_plot[4]).astype(float)
-            y_data = np.asarray(data_to_plot[1]).astype(float)
-            
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
-        plt.errorbar(pred_z, mean_prediction, mean_std, marker ='x', alpha=1, label='unweighted mean = {0:.3f}\nunweighted std = {1:.3f}'.format(mean_prediction, mean_std)) #plotting raw average
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
-        plt.ylim([0, 1])
-        plt.legend()
-        """
-        
         #Manipulate the weight list to turn into usable alphas
         weight_list_np = np.array(weight_list)
         #transform to interval [0, 1] using -1/log10(weight/10)
@@ -199,7 +186,7 @@ if __name__ == '__main__':
         max_alpha = alpha_per_gal.max()
         norm_factor = 0.5/max_alpha
         norm_alphas_per_gal = alpha_per_gal * norm_factor
-        
+
         plt.subplot(111)
         weight_index=0
         for name in unique_names:
@@ -209,7 +196,8 @@ if __name__ == '__main__':
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
             
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+            plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
+            plt.errorbar([pred_z, grad_demo_list_z[weight_index]], [prediction_list[weight_index], grad_demo_list_p[weight_index]], color='grey', alpha=norm_alphas_per_gal[weight_index], fmt='')
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
             weight_index+=1
             
@@ -218,9 +206,9 @@ if __name__ == '__main__':
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
         #Add a box showing which data will be included by the sampling method - (gca = get current axes), zorder - brings box in front of lines
         #inputs Rectangle((x_bottom_left, y_bottom_left), width, height, angle(optional), colour='')
-        plt.gca().add_patch(Rectangle((test_z - 0.05, test_p - 0.2), 2*0.05, 2*0.2, color="red", zorder=3, alpha=0.25)) #Largest box for delta_z = 0.05, delta_p = 0.2
-        #plt.gca().add_patch(Rectangle((test_z - 0.015, test_p - 0.1), 2*0.015, 2*0.1, color="blue", zorder=3, alpha=0.25)) #Medium box for delta_z = 0.015, delta_p = 0.1
-        #plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.25)) #Smallest box for delta_z = 0.008, delta_p = 0.016
+        #plt.gca().add_patch(Rectangle((test_z - 0.05, test_p - 0.2), 2*0.05, 2*0.2, color="red", zorder=3, alpha=0.5)) #Largest box for delta_z = 0.05, delta_p = 0.2
+        #plt.gca().add_patch(Rectangle((test_z - 0.015, test_p - 0.1), 2*0.015, 2*0.1, color="blue", zorder=3, alpha=0.5)) #Medium box for delta_z = 0.015, delta_p = 0.1
+        #plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.5)) #Smallest box for delta_z = 0.008, delta_p = 0.016
 
 
         plt.xlabel('Redshift')
@@ -230,7 +218,7 @@ if __name__ == '__main__':
         plt.legend()
 
         #plt.savefig('Expalining_how_sample_non_sampled_box3.png'.format(test_name), dpi=200)
-        plt.savefig('Explaining_how_sample_05_2_box1.png'.format(test_name), dpi=200)
+        plt.savefig('c_{0}.png'.format(test_name), dpi=200)
         plt.close()
         
     print('Predictions made, calculating Chi-Squared')
