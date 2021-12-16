@@ -241,6 +241,7 @@ if __name__ == '__main__':
             #Plot the data points and the data fit
             plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
             plt.plot(x[:], y_pred[:], "b-", alpha=0.3) #plot for smaller x range (drop the first 0.1 maybe?) - looks weird
+            weight_index+=1
 
         x_val = prediction_list_gp
         sd = np.sqrt(pred_sigma_list)

@@ -203,6 +203,7 @@ if __name__ == '__main__':
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
             
             plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
+            weight_index+=1
 
         plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', color = 'red', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p)) #plotting average weighted by 2D gaussian
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
