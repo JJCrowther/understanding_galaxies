@@ -190,7 +190,18 @@ if __name__ == '__main__':
         plt.legend()
         """
         
+        #Manipulate the weight list to turn into usable alphas
+        weight_list_np = np.array(weight_list)
+        #transform to interval [0, 1] using -1/log10(weight/10)
+        logged_weights = np.log10(weight_list_np/10)
+        alpha_per_gal = -1/logged_weights
+        #Normalise the alphas to max at 0.8
+        max_alpha = alpha_per_gal.max()
+        norm_factor = 0.5/max_alpha
+        norm_alphas_per_gal = alpha_per_gal * norm_factor
+        
         plt.subplot(111)
+        weight_index=0
         for name in unique_names:
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
             var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
@@ -198,10 +209,11 @@ if __name__ == '__main__':
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
             
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+            plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
-
-        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
+            weight_index+=1
+            
+        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, color='red', label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
         #Add a box showing which data will be included by the sampling method - (gca = get current axes), zorder - brings box in front of lines

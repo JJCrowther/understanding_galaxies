@@ -22,24 +22,15 @@ if __name__ == '__main__':
     delta_z = 0.008 #sets width of sample box - Default optimised = 0.008
     delta_p = 0.016 #sets height of smaple box - Default optimised = 0.016
     delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
-
-    #Individual galaxy tunable test parameters
-    #test_z = 0.2308291643857956
-    #pred_z = 0.1154145821928978
-    #actual_p = 0.5717100280287778
-    #test_p = 0.4432387127766238
-    #test_mag = -19.726
-
-    #Set values for smapling 
-    #upper_z = test_z + delta_z
-    #lower_z = test_z - delta_z
-    #upper_p = test_p + delta_p
-    #lower_p =test_p - delta_p
     
     scale_factor_data={}
     full_data_array_first_cut=np.zeros((0, 6))
     full_data_array_first_cut_var=np.zeros((0, 6))
     chi_squared_list=[]
+
+    good_fit_gp = 0
+    bad_fit_gp = 0
+    ok_fit_gp = 0
 
         # The data
 
@@ -79,7 +70,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[50:51, 0] 
+    test_sample_names = full_data_array_first_cut[0:100, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -94,6 +85,7 @@ if __name__ == '__main__':
 
     print('Beginning predictions')
     #If we want to operate over multiple galaxies, start a for loop here
+    test_gal_number = 0
     for test_name in test_sample_names:
     
         test_galaxy = test_sample[test_sample[0] == test_name]
@@ -119,59 +111,12 @@ if __name__ == '__main__':
         for name in unique_names:
             sim_sub_set = sim_sub_set.append(full_dataframe[full_dataframe[0] == name])
             sim_sub_set_var = sim_sub_set_var.append(full_dataframe_var[full_dataframe_var[0] == name])
-        
-     
-        #Let's make some predictions
 
-        prediction_list=[]
-        weight_list = []
-
-    
-        for name in unique_names:
-            galaxy_data = sim_sub_set[sim_sub_set[0] == name]
-
-            abs_diff_pred_z = abs(galaxy_data[4].astype(float) - pred_z)
-            min_pos_pred = abs_diff_pred_z.nsmallest(2).index[0] #nsmallest picks the n smallest values and puts them in df
-            
-            abs_diff_test_z = abs(galaxy_data[4].astype(float) - test_z)
-            min_pos_test = abs_diff_test_z.nsmallest(2).index[0] #nsmallest picks the n smallest values and puts them in df
-
-            closest_vals = galaxy_data.loc[[min_pos_test]] #Possible could encounter edge case issues
-            
-            gaussain_p_variable = closest_vals[1].astype(float).to_numpy()[0]
-            gaussian_z_variable = closest_vals[4].astype(float).to_numpy()[0]
-            gaussian_mag_variable = closest_vals[5].astype(float).to_numpy()[0]
-
-            proximity_weight = frf.gaussian_weightings(gaussain_p_variable, gaussian_z_variable, test_p, test_z, delta_p/2, delta_z/2)
-            mag_weight = frf.gaussian_weightings(gaussian_mag_variable, 0, test_mag, 0, delta_mag, 1)
-
-            weight = proximity_weight * mag_weight
-
-            #print('mag_weight is:', mag_weight, '\nprox_wieght is:', proximity_weight, '\nTotal Weight is:', weight)
-
-            weight_list.append(weight)    
-
-        #Initiate and name the figure
-        plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
-        
         #Define lists for the regression data to be appended to
         regression_x_data = np.zeros((0, 1))
         regression_y_data = np.zeros((0, 1))
 
-        #Manipulate the weight list to turn into usable alphas
-        weight_list_np = np.array(weight_list)
-        #transform to interval [0, 1] using -1/log10(weight/10)
-        logged_weights = np.log10(weight_list_np/10)
-        alpha_per_gal = -1/logged_weights
-        #Normalise the alphas to max at 0.8
-        max_alpha = alpha_per_gal.max()
-        norm_factor = 0.5/max_alpha
-        norm_alphas_per_gal = alpha_per_gal * norm_factor
-
-        #Open the subplot
-        plt.subplot(111)
-        weight_index=0
+        
         for name in unique_names:
             #Find the x and y data for subset galaxy
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
@@ -179,14 +124,12 @@ if __name__ == '__main__':
             x_data = np.asarray(data_to_plot[4]).astype(float)
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
-            #plot individual galaxies
-            plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
+            
             #append all galaxies in sub smaple to single list
             regression_x_data = np.append(regression_x_data, x_data)
             regression_y_data = np.append(regression_y_data, y_data)
             
-            #sorted_regression_x_data=regression_x_data[regression_x_data.argsort()]
-            #sorted_regression_y_data=regression_y_data[regression_x_data.argsort()]
+        
                 #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
             
         # Instantiate a Gaussian Process model for Regression
@@ -202,40 +145,28 @@ if __name__ == '__main__':
         # Make the prediction on the meshed x-axis (ask for MSE as well)
         y_pred, sigma = gp.predict(x, return_std=True)
 
-        #Plot the data points and the data fit
-        plt.errorbar(x, y_pred, marker='', alpha=0.6, label = 'GPR fit') #label='Prediction\noriginal kernel: {0}\nFinal kernel: {1}\nLML: {2:.3f}'.format(kernel, gp.kernel_, gp.log_marginal_likelihood(gp.kernel_.theta)))
-        
+        #Plot the data points and the data fit        
         interval = (0.25-0)/100 #This is defined by linspace(0, 0.25, 100) 
         target_index = pred_z/interval
         prediction = y_pred[np.round(target_index).astype(int)]
         pred_sigma = sigma[np.round(target_index).astype(int)]
+                          
+        #Check which catagory the fit falls into
+
+        prediction_similarity_gp = abs(actual_p - prediction)/pred_sigma
         
-        plt.errorbar(pred_z, prediction, pred_sigma, marker='v', color='red', label='GPR prediction: {0:.3f}\nStandard deviation: {1:.3f}'.format(prediction, pred_sigma))
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}'.format(actual_p))
-        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift: {0:.3f}'.format(test_z))
-
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
-        plt.ylim([0, 1])
-        plt.legend()
-
-        plt.savefig('b_{0}.png'.format(test_name), dpi=200)
-        plt.close()
-
-        print('Initial kernel vals:', kernel)
-        print('Final kernel vals:', gp.kernel_)
-        print('the log marginal likelihood:', gp.log_marginal_likelihood(gp.kernel_.theta))
+        if prediction_similarity_gp < 1:
+            good_fit_gp+=1
+        elif prediction_similarity_gp < 2:
+            ok_fit_gp+=1
+        else:
+            bad_fit_gp+=1
+            
+        test_gal_number+=1
+        print('gal number {0} done'.format(test_gal_number))
+        
+    print('Good=1sd, OK=2sd, Bad=2+sd\n')
+    print('For {0} test galaxies:'.format(len(test_sample_names)))
+    print('For GP:\nGood:{0}\nOK:{1}\nBad:{2}'.format(good_fit_gp, ok_fit_gp, bad_fit_gp))
+    print('\nEnd')
     
-    
-                        
-    print('End')
-    
-    """ Scaling code - dont think to useful here?
-    from sklearn import preprocessing
-    #Scale the data to make easier to fit - https://scikit-learn.org/stable/modules/preprocessing.html
-    scaler = preprocessing.StandardScaler().fit(np.atleast_2d(x_data).T, y_data)
-    
-    C in GPR
-    C(0.5, (1e-5, 1e5))
-    """

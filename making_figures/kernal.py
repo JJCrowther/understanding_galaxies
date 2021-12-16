@@ -145,9 +145,6 @@ for name in test_sample_names:
     kern_sum_val = np.zeros(0)
     area_kern_sum_val = np.zeros(0)
     
-
-    """
-    
     kern_sum_val = np.zeros(0)
     area_kern_sum_val = np.zeros(0)
     x_val = prediction_list

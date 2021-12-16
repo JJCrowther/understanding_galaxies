@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[41:50, 0] 
+    test_sample_names = full_data_array_first_cut[40:43, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -183,7 +183,18 @@ if __name__ == '__main__':
         plt.figure(figsize=(10,6))
         plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
 
+        #Manipulate the weight list to turn into usable alphas
+        weight_list_np = np.array(weight_list)
+        #transform to interval [0, 1] using -1/log10(weight/10)
+        logged_weights = np.log10(weight_list_np/10)
+        alpha_per_gal = -1/logged_weights
+        #Normalise the alphas to max at 0.8
+        max_alpha = alpha_per_gal.max()
+        norm_factor = 0.5/max_alpha
+        norm_alphas_per_gal = alpha_per_gal * norm_factor
+
         plt.subplot(121)
+        weight_index=0
         for name in unique_names:
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
             var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
@@ -191,7 +202,7 @@ if __name__ == '__main__':
             y_data = np.asarray(data_to_plot[1]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[1]).astype(float))
             
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+            plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
 
         plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', color = 'red', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p)) #plotting average weighted by 2D gaussian
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
@@ -345,7 +356,7 @@ if __name__ == '__main__':
             plt.fill_betweenx(x_range,  norm_kern_sum, where=(sd > abs((new_mean-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation = {0:.3f}".format(sd))
             plt.legend(fontsize=7, loc=1)
             plt.gca().invert_xaxis()
-            plt.savefig('grad_corr_{0}_with_kernels.png'.format(test_name))
+            plt.savefig('grad_corr_{0}_with_kernels_weightalpha.png'.format(test_name))
             plt.close()
         
         else:
@@ -363,7 +374,7 @@ if __name__ == '__main__':
                 plt.fill_betweenx(x_range, norm_kern_sum, where=(df.iloc[i]['sd'] > abs(((df.iloc[i]['mean']/1000)-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation_{1} = {0:.3f}".format(df.iloc[i]['sd'], i))
             plt.gca().invert_xaxis()
             plt.legend(fontsize=7, loc=1)
-            plt.savefig('grad_corr_{0}_with_kernels.png'.format(test_name))
+            plt.savefig('grad_corr_{0}_with_kernels_weightalpha.png'.format(test_name))
             plt.close()
 
     plt.close('all')

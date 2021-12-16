@@ -188,8 +188,18 @@ if __name__ == '__main__':
         plt.ylim([0, 1])
         plt.legend()
         """
+        #Manipulate the weight list to turn into usable alphas
+        weight_list_np = np.array(weight_list)
+        #transform to interval [0, 1] using -1/log10(weight/10)
+        logged_weights = np.log10(weight_list_np/10)
+        alpha_per_gal = -1/logged_weights
+        #Normalise the alphas to max at 0.8
+        max_alpha = alpha_per_gal.max()
+        norm_factor = 0.5/max_alpha
+        norm_alphas_per_gal = alpha_per_gal * norm_factor
         
         plt.subplot(111)
+        weight_index=0
         for name in unique_names:
             data_to_plot = sim_sub_set[sim_sub_set[0] == name]
             var_to_plot = sim_sub_set_var[sim_sub_set_var[0] == name]
@@ -197,7 +207,7 @@ if __name__ == '__main__':
             y_data = np.asarray(data_to_plot[3]).astype(float)
             y_err = np.sqrt(np.asarray(var_to_plot[3]).astype(float))
             
-            plt.errorbar(x_data, y_data, marker ='x', alpha=0.3)
+            plt.errorbar(x_data, y_data, marker ='x', alpha=norm_alphas_per_gal[weight_index])
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
 
         plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
