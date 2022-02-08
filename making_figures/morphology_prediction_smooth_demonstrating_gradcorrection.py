@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[45:50, 0] 
+    test_sample_names = full_data_array_first_cut[46:47, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         chi_squared_list.append(chi_squared)
 
         plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
+        plt.suptitle('{3} Morphology Near Test Value Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18, wrap=True)
         
         #Manipulate the weight list to turn into usable alphas
         weight_list_np = np.array(weight_list)
@@ -201,7 +201,7 @@ if __name__ == '__main__':
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
             weight_index+=1
             
-        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, color='red', label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
+        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, color='red', label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p)) #plotting average weighted by 2D gaussian
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
         #Add a box showing which data will be included by the sampling method - (gca = get current axes), zorder - brings box in front of lines
@@ -211,14 +211,16 @@ if __name__ == '__main__':
         #plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.5)) #Smallest box for delta_z = 0.008, delta_p = 0.016
 
 
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlabel('Redshift', fontsize=16)
+        plt.ylabel('Prediction of Smoothness Liklihood', fontsize=16)
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
-        plt.legend()
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        #--plt.legend()
 
         #plt.savefig('Expalining_how_sample_non_sampled_box3.png'.format(test_name), dpi=200)
-        plt.savefig('c_{0}.png'.format(test_name), dpi=200)
+        plt.savefig('c_{0}_no_legend.png'.format(test_name), dpi=200)
         plt.close()
         
     print('Predictions made, calculating Chi-Squared')

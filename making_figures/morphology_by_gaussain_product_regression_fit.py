@@ -15,6 +15,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.gaussian_process.kernels import Matern
 from sklearn.gaussian_process.kernels import RationalQuadratic
+from sklearn.gaussian_process.kernels import WhiteKernel
 
 print('\nStart')
 
@@ -79,7 +80,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[50:51, 0] 
+    test_sample_names = full_data_array_first_cut[1:2, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -153,7 +154,7 @@ if __name__ == '__main__':
 
         #Initiate and name the figure
         plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
+        plt.suptitle('{3} Morphology Near Test Value Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies\n'.format(test_z, test_p, len(unique_names), test_name), fontsize=18, wrap=True)
         
         #Define lists for the regression data to be appended to
         regression_x_data = np.zeros((0, 1))
@@ -190,8 +191,8 @@ if __name__ == '__main__':
                 #Now to do regression - base of code taken from https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html
             
         # Instantiate a Gaussian Process model for Regression
-        kernel = 1 * Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01) #Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01), RBF(length_scale=10, length_scale_bounds=(1e-5, 1e5)), RationalQuadratic(length_scale=1.0, alpha=0.1, alpha_bounds=(1e-5, 1e15))
-        gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=20) # alpha=1 Smooths the line but drops it by some amount proportional to alpha
+        kernel = 1 * Matern(length_scale=0.01, length_scale_bounds=(1e-5, 1e5), nu=0.01) #+ WhiteKernel(noise_level=1) #Matern(length_scale=0.001, length_scale_bounds=(1e-5, 1e5), nu=0.01), RBF(length_scale=1e-5, length_scale_bounds=(1e-10, 1e10)), RationalQuadratic(length_scale=1.0, alpha=0.1, alpha_bounds=(1e-5, 1e15))
+        gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=25) # alpha=1 Smooths the line but drops it by some amount proportional to alpha
         
         # Fit to data using Maximum Likelihood Estimation of the parameters
         gp.fit(np.atleast_2d(regression_x_data).T, regression_y_data)
@@ -214,13 +215,15 @@ if __name__ == '__main__':
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}'.format(actual_p))
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift: {0:.3f}'.format(test_z))
 
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
+        plt.xlabel('Redshift', fontsize=16)
+        plt.ylabel('Prediction of Smoothness Liklihood', fontsize=16)
+        plt.xlim([0.05, 0.25])
         plt.ylim([0, 1])
-        plt.legend()
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        plt.legend(fontsize=12)
 
-        plt.savefig('b_{0}.png'.format(test_name), dpi=200)
+        plt.savefig('gpr_fit_Matern_{0}_test_full_adjusted.png'.format(test_name), dpi=200)
         plt.close()
 
         print('Initial kernel vals:', kernel)

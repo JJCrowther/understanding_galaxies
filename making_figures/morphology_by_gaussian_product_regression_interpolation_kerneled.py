@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     print('Files appended, removing test sample')
     #Remove the test sample
-    test_sample_names = full_data_array_first_cut[40:43, 0] 
+    test_sample_names = full_data_array_first_cut[1:2, 0] 
 
     full_dataframe = pd.DataFrame(full_data_array_first_cut)
     full_dataframe_var = pd.DataFrame(full_data_array_first_cut_var)
@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
         #Initiate and name the figure
         plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
+        plt.suptitle('{3} Morphology Near Test Value Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies\n'.format(test_z, test_p, len(unique_names), test_name), fontsize=18, wrap=True)
         
         #Manipulate the weight list to turn into usable alphas
         weight_list_np = np.array(weight_list)
@@ -371,45 +371,53 @@ if __name__ == '__main__':
         plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
         plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}\nTarget Redshift: {1:.3f}'.format(actual_p, pred_z))
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlabel('Redshift', fontsize=16)
+        plt.ylabel('Prediction of Smoothness Liklihood', fontsize=16)
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
-        plt.legend()
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.legend(framealpha=0)
     
         if (len(peaks) == 1):  
             plt.subplot(122)
 
             plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
+            plt.ylabel("Smooth probability", fontsize=16)
+            plt.xlabel("Normalised value", fontsize=16)
             plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
             plt.axhline(new_mean, label='Mean= {0:.3f}'.format(new_mean), color='red')
             plt.ylim([0, 1])
             plt.xlim(left=0)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
+            plt.tight_layout()
 
             plt.fill_betweenx(x_range,  norm_kern_sum, where=(sd > abs((new_mean-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation = {0:.3f}".format(sd))
-            plt.legend(fontsize=7, loc=1)
+            plt.legend(fontsize=10, framealpha=0)
             plt.gca().invert_xaxis()
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha.png'.format(test_name))
+            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha_adjusted.png'.format(test_name))
             plt.close()
         
         else:
             plt.subplot(122)
 
             plt.plot(norm_kern_sum, x_range, label= 'Kerneled pdf')
-            plt.ylabel("Smooth probability")
-            plt.xlabel("Normalised value")
+            plt.ylabel("Smooth probability", fontsize=16)
+            plt.xlabel("Normalised value", fontsize=16)
             plt.axhline(actual_p, label='Original prob = {0:.3f}'.format(actual_p), color='black')
             plt.ylim([0, 1])
             plt.xlim(left=0)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
+            plt.tight_layout()
 
             for i in range(len(peaks)):
                 plt.axhline(peaks[i]/1000, label='Peak_{1} = {0:.3f}, with peak ratio = {2:.2f}'.format(df.iloc[i]['mean']/1000, i,df.iloc[i]['ratio'] ), color='red')
                 plt.fill_betweenx(x_range, norm_kern_sum, where=(df.iloc[i]['sd'] > abs(((df.iloc[i]['mean']/1000)-x_range))), color ='blue', alpha = 0.4, label = "Standard deviation_{1} = {0:.3f}".format(df.iloc[i]['sd'], i))
             plt.gca().invert_xaxis()
-            plt.legend(fontsize=7, loc=1)
-            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha.png'.format(test_name))
+            plt.legend(fontsize=10, framealpha=0)
+            plt.savefig('gp_interpolation_with_kernel_matern_{0}_weightalpha_adjusted.png'.format(test_name))
             plt.close()
 
     plt.close('all')

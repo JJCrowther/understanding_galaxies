@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
         #Initiate and name the figure
         plt.figure(figsize=(10,6))
-        plt.suptitle('{3} Morphology Near Test\nValue Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies'.format(test_z, test_p, len(unique_names), test_name), fontsize=18)
+        plt.suptitle('{3} Morphology Near Test Value Parameters z={0:.3f} p={1:.3f} with N={2} Galaxies\n'.format(test_z, test_p, len(unique_names), test_name), fontsize=18, wrap=True)
         
         #Manipulate the weight list to turn into usable alphas
         weight_list_np = np.array(weight_list)
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         weight_index=0
         for name in unique_names:
             # Instantiate a Gaussian Process model for Regression
-            kernel = 1 * RBF(length_scale=0.01, length_scale_bounds=(1e-7, 1e7)) #Matern(length_scale=0.01, length_scale_bounds=(1e-7, 1e7), nu=1.5) #RBF(length_scale=0.001, length_scale_bounds=(1e-5, 1e5))
+            kernel = 1 * Matern(length_scale=0.01, length_scale_bounds=(1e-7, 1e7), nu=1.5) #RBF(length_scale=0.01, length_scale_bounds=(1e-7, 1e7)) 
             gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=12)
 
             #Find the x and y data for subset galaxy
@@ -235,15 +235,17 @@ if __name__ == '__main__':
 
         prediction_average = np.mean(prediction_list_gp)
         sigma_average = np.mean(np.sqrt(pred_sigma_list))
-        plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}\nTarget Redshift: {1:.3f}'.format(actual_p, pred_z))
-        plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
-        plt.xlim([0, 0.25])
+        #plt.errorbar(pred_z, prediction_average, sigma_average, marker='v', color = 'r', label='Prediction value: {0:.3f}\nStandard Deviation: {1:.3f}'.format(prediction_average, sigma_average))
+        #plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction: {0:.3f}\nTarget Redshift: {1:.3f}'.format(actual_p, pred_z))
+        #plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
+        plt.xlabel('Redshift', fontsize=16)
+        plt.ylabel('Prediction of Smoothness Liklihood', fontsize=16)
+        plt.xlim([0.05, 0.25])
         plt.ylim([0, 1])
-        plt.legend()
-        plt.savefig('gp_interpolation_RBF_{0}_weightalpha.png'.format(test_name))
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        #--plt.legend()
+        plt.savefig('gp_interpolation_matern_{0}_weightalpha_adjusted.png'.format(test_name))
 
     plt.close('all')
     print('End')

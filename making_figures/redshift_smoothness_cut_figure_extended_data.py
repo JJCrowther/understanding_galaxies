@@ -3,9 +3,9 @@ import functions_for_redshifting_figures as frf
 import pandas as pd
 
 print('Begin \n')
-file_name_list = ['scaled_image_predictions_1.csv', 'scaled_image_predictions_2.csv', 'scaled_image_predictions_3.csv', 'scaled_image_predictions_4.csv', 'scaled_image_predictions_5.csv', 'scaled_image_predictions_6.csv']
+file_name_list = ['scaled_image_predictions_1.csv', 'scaled_image_predictions_1.2.csv', 'scaled_image_predictions_1.4.csv', 'scaled_image_predictions_1.6.csv', 'scaled_image_predictions_1.8.csv', 'scaled_image_predictions_2.csv', 'scaled_image_predictions_2.2.csv', 'scaled_image_predictions_2.4.csv', 'scaled_image_predictions_2.6.csv', 'scaled_image_predictions_2.8.csv', 'scaled_image_predictions_3.csv', 'scaled_image_predictions_4.csv', 'scaled_image_predictions_5.csv', 'scaled_image_predictions_6.csv']
 
-scale_factor_multiplier=[1, 2, 3, 4, 5, 6] #index used for scale facotr multiplication
+scale_factor_multiplier=[1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 4, 5, 6] #index used for scale facotr multiplication
 i=0
 rounding=0.02
 scale_factor_data={}
@@ -75,9 +75,9 @@ figure_mag_lims = ['-18 to -20',
                     '-20 to -21',
                     '-21 to -24']
 
-figure_save_names = ['smoothness_cut_18_20_{0}_graph_redshift_certain_classification_remade.png'.format(cut_threshold), 
-                    'smoothness_cut_20_21_{0}_graph_redshift_certain_classification_remade.png'.format(cut_threshold),
-                    'smoothness_cut_21_24_{0}_graph_redshift_certain_classification_remade.png'.format(cut_threshold)]
+figure_save_names = ['smoothness_cut_18_20_{0}_graph_redshift_certain_classification_extended_data_remade.png'.format(cut_threshold), 
+                    'smoothness_cut_20_21_{0}_graph_redshift_certain_classification_extended_data_remade.png'.format(cut_threshold),
+                    'smoothness_cut_21_24_{0}_graph_redshift_certain_classification_extended_data_remade.png'.format(cut_threshold)]
 i=0
 for proportions in proportions_by_redshift_by_cut:
     y_data = np.zeros((0, 3))

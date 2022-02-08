@@ -10,8 +10,8 @@ import functions_for_redshifting_figures as frf
 print('\nStart')
 
 if __name__ == '__main__':
-    delta_z = 0.05 #sets width of sample box - Default optimised = 0.008
-    delta_p = 0.2 #sets height of smaple box - Default optimised = 0.016
+    delta_z = 0.1 #sets width of sample box - Default optimised = 0.008
+    delta_p = 0.45 #sets height of smaple box - Default optimised = 0.016
     delta_mag = 0.5 #Vary to find better base value - Default optimised = 0.5
 
     #Individual galaxy tunable test parameters
@@ -213,24 +213,25 @@ if __name__ == '__main__':
             #plt.errorbar(x_data, y_data, y_err, marker ='x', alpha=0.3) #With errors on predictions
             weight_index+=1
             
-        plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, color='red', label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
-        plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
+        #--plt.errorbar(pred_z, weighted_mean, weighted_std, marker ='x', alpha=1, color='red', label='Weighted mean = {0:.3f}\nWeighted std = {1:.3f}\nTarget redshift = {2:.3f}\nActual liklihood = {3:.3f}\nChi_sqaured = {4:.3f}'.format(weighted_mean, weighted_std, pred_z, actual_p, chi_squared)) #plotting average weighted by 2D gaussian
+        #--plt.errorbar(pred_z, actual_p, marker = 'v', alpha = 0.75,  color = 'black', label='Actual Test prediction for new redshift')
         plt.errorbar(test_z, test_p, marker = 's', alpha = 0.75,  color = 'black', label='Original redshift prediction')
         #Add a box showing which data will be included by the sampling method - (gca = get current axes), zorder - brings box in front of lines
         #inputs Rectangle((x_bottom_left, y_bottom_left), width, height, angle(optional), colour='')
-        plt.gca().add_patch(Rectangle((test_z - 0.05, test_p - 0.2), 2*0.05, 2*0.2, color="red", zorder=3, alpha=0.25)) #Largest box for delta_z = 0.05, delta_p = 0.2
-        #plt.gca().add_patch(Rectangle((test_z - 0.015, test_p - 0.1), 2*0.015, 2*0.1, color="blue", zorder=3, alpha=0.25)) #Medium box for delta_z = 0.015, delta_p = 0.1
-        #plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.25)) #Smallest box for delta_z = 0.008, delta_p = 0.016
+        plt.gca().add_patch(Rectangle((test_z - 0.05, test_p - 0.2), 2*0.05, 2*0.2, color="red", zorder=3, alpha=0.25, label='$\delta$z=0.05 and $\delta$p=0.2')) #Largest box for delta_z = 0.05, delta_p = 0.2
+        plt.gca().add_patch(Rectangle((test_z - 0.015, test_p - 0.1), 2*0.015, 2*0.1, color="blue", zorder=3, alpha=0.25, label='$\delta$z=0.015 and $\delta$p=0.1')) #Medium box for delta_z = 0.015, delta_p = 0.1
+        plt.gca().add_patch(Rectangle((test_z - 0.008, test_p - 0.016), 2*0.008, 2*0.016, color="green", zorder=3, alpha=0.25, label='$\delta$z=0.008 and $\delta$p=0.016')) #Smallest box for delta_z = 0.008, delta_p = 0.016
 
-
-        plt.xlabel('Redshift')
-        plt.ylabel('Prediction of Smoothness Liklihood')
+        plt.xlabel('Redshift', fontsize=16)
+        plt.ylabel('Prediction of Smoothness Liklihood', fontsize=16)
         plt.xlim([0, 0.25])
         plt.ylim([0, 1])
-        plt.legend()
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        #--plt.legend(fontsize=16, loc='center left', bbox_to_anchor=(1.05, 0.5))
 
-        #plt.savefig('Expalining_how_sample_non_sampled_box3.png'.format(test_name), dpi=200)
-        plt.savefig('Explaining_how_sample_05_2_box1.png'.format(test_name), dpi=200)
+        plt.savefig('Expalining_how_sample_non_sampled_allbox_adjusted.png'.format(test_name), dpi=200)
+        #plt.savefig('Explaining_how_sample_05_2_adjusted.png'.format(test_name), dpi=200)
         plt.close()
         
     print('Predictions made, calculating Chi-Squared')
